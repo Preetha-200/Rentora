@@ -25,5 +25,3 @@ vite.config.ts.timestamp-*
 # Backend
 backend/serviceAccountKey.json
 backend/.env
-
-backend/serviceAccountKey.json
