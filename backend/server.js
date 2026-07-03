@@ -1,34 +1,34 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import authRoutes from './routes/auth.js';
-import propertyRoutes from './routes/properties.js';
-import requestRoutes from './routes/requests.js';
-import operationRoutes from './routes/operations.js';
+const express = require("express");
+const cors = require("cors");
+const dotenv = require("dotenv");
 
 dotenv.config();
 
 const app = express();
 
+// Firebase Connection
+require("./config/firebase");
+
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/auth', authRoutes);
-app.use('/api/properties', propertyRoutes);
-app.use('/api/requests', requestRoutes);
-app.use('/api', operationRoutes);
-
-app.get('/', (req, res) => {
-  res.json({
-    status: 'Success',
-    message: 'Rentora Express API is online and responding beautifully!'
-  });
+// Test Route
+app.get("/", (req, res) => {
+    res.json({
+        success: true,
+        message: "🚀 Rentora Backend Running Successfully"
+    });
 });
 
+// Routes
+app.use("/api/auth", require("./routes/auth"));
+app.use("/api/properties", require("./routes/properties"));
+app.use("/api/requests", require("./routes/requests"));
+
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-  console.log(`========================================`);
-  console.log(`🔥 Rentora Backend online on Port: ${PORT}`);
-  console.log(`🔗 Test URL: http://localhost:${PORT}`);
-  console.log(`========================================`);
+    console.log(`Server running on http://localhost:${PORT}`);
 });
