@@ -4,19 +4,19 @@ import { properties } from '../store.js';
 
 const router = express.Router();
 
-// 1. Get Approved Listings (Public Search)
+// Public: Browse properties on home/search feed
 router.get('/', (req, res) => {
   const approved = properties.filter(p => p.status === 'Approved');
   res.json(approved);
 });
 
-// 2. Submit a Property (Owners Only)
+// Owner: Post a new property listing
 router.post('/add', verifyToken, authorizeRoles('owner'), (req, res) => {
   try {
     const { title, location, price, bhk, propertyType } = req.body;
 
     if (!title || !location || !price || !bhk || !propertyType) {
-      return res.status(400).json({ message: 'All listing specifications are required.' });
+      return res.status(400).json({ message: 'All listing fields are required.' });
     }
 
     const newProperty = {
@@ -32,31 +32,31 @@ router.post('/add', verifyToken, authorizeRoles('owner'), (req, res) => {
     properties.push(newProperty);
 
     res.status(201).json({
-      message: 'Property listing logged successfully. Pending Admin review.',
+      message: 'Property listing submitted for Admin review.',
       property: newProperty
     });
   } catch (err) {
-    res.status(500).json({ message: 'Server error saving listing.' });
+    res.status(500).json({ message: 'Error saving property.' });
   }
 });
 
-// 3. Get pending approvals (Admin Only)
+// Admin: Get unapproved listings
 router.get('/pending', verifyToken, authorizeRoles('admin'), (req, res) => {
   const pending = properties.filter(p => p.status === 'Pending');
   res.json(pending);
 });
 
-// 4. Approve Pending Property (Admin Only)
+// Admin: Approve a listing to go live
 router.put('/approve/:id', verifyToken, authorizeRoles('admin'), (req, res) => {
   const propertyId = parseInt(req.params.id);
   const property = properties.find(p => p.id === propertyId);
 
   if (!property) {
-    return res.status(404).json({ message: 'Property listing not found.' });
+    return res.status(404).json({ message: 'Property not found.' });
   }
 
   property.status = 'Approved';
-  res.json({ message: `Property with ID ${propertyId} approved. Listing is now public!`, property });
+  res.json({ message: 'Property approved successfully!', property });
 });
 
 export default router;

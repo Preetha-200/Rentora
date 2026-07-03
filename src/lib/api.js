@@ -1,14 +1,14 @@
 const BASE_URL = 'http://localhost:5000/api';
 
-// Shared utility helper to perform standard JSON API fetches
+// Fixed Line 3: Added the function name "sendRequest"
 async function sendRequest(endpoint, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
   
-  // Retrieve token from browser localStorage
+  // Retrieve security session key from local browser storage
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('rentora_token');
     if (token) {
-      headers['Authorization'] = token; // Sends "Bearer <token>" header automatically
+      headers['Authorization'] = token;
     }
   }
 
@@ -21,7 +21,7 @@ async function sendRequest(endpoint, method = 'GET', body = null) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong with the API request.');
+    throw new Error(data.message || 'Server request failed.');
   }
   return data;
 }
