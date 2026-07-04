@@ -1,71 +1,58 @@
 <script>
-  import { mockProperties } from '$lib/mockData.js';
+  import { onMount } from "svelte";
+  import { propertyAPI } from "$lib/api";
+  import PropertyCard from "$lib/components/PropertyCard.svelte";
 
-  let properties = $state([...mockProperties]);
-  let title = $state('');
-  let location = $state('');
-  let price = $state('');
+  let properties = [];
+  let loading = true;
 
-  function addProperty(e) {
-    e.preventDefault();
-    const newProperty = {
-      id: `prop-${Date.now()}`,
-      title,
-      location,
-      price: Number(price),
-      status: 'Pending',
-      image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=500'
-    };
-    properties = [...properties, newProperty];
-    title = '';
-    location = '';
-    price = '';
-  }
+  onMount(async () => {
+    const data = await propertyAPI.getMyProperties();
+    properties = data;
+    loading = false;
+  });
+
+  const handleEdit = (id) => {
+    // Navigate to edit page – we can reuse add page with property id
+    window.location.href = `/owner/properties/edit/${id}`;
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this property?")) return;
+    const result = await propertyAPI.remove(id);
+    if (result.message) {
+      properties = properties.filter((p) => p.id !== id);
+    } else {
+      alert("Failed to delete property");
+    }
+  };
 </script>
 
-<h1 class="text-3xl font-bold text-rentora-dark mb-6">Property Management</h1>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-    <h2 class="text-xl font-bold mb-4">Add New Property</h2>
-    <form onsubmit={addProperty} class="space-y-4">
-      <div>
-        <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Property Title</label>
-        <input id="title" type="text" bind:value={title} required class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple" placeholder="Apartment Name" />
-      </div>
-      <div>
-        <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
-        <input id="location" type="text" bind:value={location} required class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple" placeholder="City, Area" />
-      </div>
-      <div>
-        <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Monthly Rent (₹)</label>
-        <input id="price" type="number" bind:value={price} required class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple" placeholder="Amount" />
-      </div>
-      <button type="submit" class="w-full py-2.5 bg-rentora-purple text-white font-semibold rounded-xl hover:bg-rentora-purpleLight transition duration-200">
-        Submit Listing
-      </button>
-    </form>
+<div class="container mx-auto p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h1 class="text-2xl font-bold">My Properties</h1>
+    <a
+      href="/owner/properties/add"
+      class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+    >
+      + Add Property
+    </a>
   </div>
 
-  <div class="lg:grid-cols-2 lg:col-span-2 grid grid-cols-1 gap-6">
-    {#each properties as property}
-      <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between">
-        <img src={property.image} alt={property.title} class="w-full h-40 object-cover" />
-        <div class="p-5 flex-1 flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-start">
-              <h3 class="font-bold text-lg text-rentora-dark">{property.title}</h3>
-              <span class="text-xs px-2.5 py-1 rounded-full font-semibold uppercase tracking-wider {property.status === 'Approved' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}">
-                {property.status}
-              </span>
-            </div>
-            <p class="text-gray-500 text-sm mt-1">{property.location}</p>
-          </div>
-          <div class="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-            <span class="font-bold text-rentora-dark">₹{property.price}/mo</span>
-          </div>
-        </div>
-      </div>
-    {/each}
-  </div>
+  {#if loading}
+    <p>Loading...</p>
+  {:else if properties.length === 0}
+    <p class="text-gray-500">You haven't added any properties yet.</p>
+  {:else}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {#each properties as property}
+        <PropertyCard
+          {property}
+          showActions={true}
+          onEdit={() => handleEdit(property.id)}
+          onDelete={() => handleDelete(property.id)}
+        />
+      {/each}
+    </div>
+  {/if}
 </div>

@@ -11,14 +11,16 @@ exports.register = async (req, res) => {
             displayName: name,
         });
 
-        await db.collection("users").doc(userRecord.uid).set({
+        const user = {
             uid: userRecord.uid,
             name,
             email,
             phone,
             role: role || "tenant",
             createdAt: new Date(),
-        });
+        };
+
+        await db.collection("users").doc(userRecord.uid).set(user);
 
         const token = await auth.createCustomToken(userRecord.uid);
 
@@ -26,13 +28,7 @@ exports.register = async (req, res) => {
             success: true,
             message: "User Registered Successfully",
             token,
-            user: {
-                uid: userRecord.uid,
-                name,
-                email,
-                phone,
-                role: role || "tenant",
-            },
+            user,
         });
     } catch (error) {
         res.status(500).json({
@@ -67,6 +63,41 @@ exports.login = async (req, res) => {
         });
     } catch (error) {
         res.status(400).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
+// Get Logged-in User Profile
+exports.getProfile = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split("Bearer ")[1];
+
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: "Authorization token missing",
+            });
+        }
+
+        const decoded = await auth.verifyIdToken(token);
+
+        const userDoc = await db.collection("users").doc(decoded.uid).get();
+
+        if (!userDoc.exists) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            user: userDoc.data(),
+        });
+    } catch (error) {
+        res.status(401).json({
             success: false,
             message: error.message,
         });
