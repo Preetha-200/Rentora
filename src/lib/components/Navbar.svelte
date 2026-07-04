@@ -44,6 +44,27 @@
 		drawerOpen = false;
 		goto('/profile');
 	}
+
+	function openDashboard() {
+		drawerOpen = false;
+
+		switch (user.role) {
+			case 'owner':
+				goto('/owner');
+				break;
+
+			case 'tenant':
+				goto('/tenant');
+				break;
+
+			case 'admin':
+				goto('/admin');
+				break;
+
+			default:
+				goto('/');
+		}
+	}
 </script>
 
 <nav class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -127,26 +148,23 @@
 
 		<div class="flex-1 p-6 space-y-3">
 
-			<button
-				on:click={openProfile}
+			<button on:click={openProfile}
 				class="w-full text-left px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
+				My Profile
+			</button>
 
-				👤 My Profile
-
+			<button on:click={openDashboard}
+				class="w-full text-left px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
+				Dashboard
 			</button>
 
 		</div>
 
 		<div class="p-6 border-t">
-
-			<button
-				on:click={logout}
-				class="w-full py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition">
-
+			<button on:click={logout}
+				class="w-full py-3 rounded-xl bg-rentora-dark text-white font-semibold hover:bg-rentora-dark transition">
 				Logout
-
 			</button>
-
 		</div>
 
 	</div>

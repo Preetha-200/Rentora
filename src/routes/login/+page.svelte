@@ -30,6 +30,8 @@
 			const token = await firebaseUser.getIdToken();
 
 			localStorage.setItem('token', token);
+			console.log('Stored token:', localStorage.getItem('token'));
+			console.log('Firebase token:', token);
 
 			const response = await api.get('/api/auth/profile');
 

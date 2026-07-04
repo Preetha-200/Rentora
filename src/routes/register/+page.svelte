@@ -38,6 +38,8 @@
 			const token = await credential.user.getIdToken();
 
 			localStorage.setItem('token', token);
+			console.log('Stored token:', localStorage.getItem('token'));
+			console.log('Firebase token:', token);
 
 			// Save additional user details in backend
 			const response = await api.post('/api/auth/register', {

@@ -94,7 +94,11 @@ api.property = {
     const url = status ? `/api/properties?status=${status}` : '/api/properties';
     return api.get(url);
   },
-  getMyProperties: () => api.get('/api/properties/my'),
+  getMyProperties: async () => {
+    const response = await api.get('/api/properties/my');
+    console.log('My Properties API Response:', response);
+    return response;
+  },
   getById: (id) => api.get(`/api/properties/${id}`),
   create: (formData) => api.postFormData('/api/properties', formData),
   update: (id, formData) => api.putFormData(`/api/properties/${id}`, formData),
