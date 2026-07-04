@@ -179,9 +179,9 @@
 							on:click={() => (showPassword = !showPassword)}
 						>
 							{#if showPassword}
-								👁️
+								<input type="checkbox" checked class="w-4 h-4 accent-indigo-900 rounded">
 							{:else}
-								🙈
+								<input type="checkbox" class="w-4 h-4 rounded">
 							{/if}
 						</button>
 
