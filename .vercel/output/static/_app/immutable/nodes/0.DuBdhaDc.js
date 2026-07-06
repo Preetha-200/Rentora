@@ -1,1 +1,0 @@
-import"../chunks/CWj6FrbW.js";import{c as n,r as s}from"../chunks/Cz_iuDMq.js";import{a as e,f as i}from"../chunks/aSYluZyd.js";import{s as m}from"../chunks/BzLnn5AX.js";var p=i('<div class="min-h-screen bg-rentora-grayLight text-rentora-dark font-sans"><!></div>');function h(o,a){var r=p(),t=n(r);m(t,()=>a.children),s(r),e(o,r)}export{h as component};

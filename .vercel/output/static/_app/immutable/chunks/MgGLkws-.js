@@ -1,1 +1,0 @@
-import{at as a,j as l}from"./Cz_iuDMq.js";function f(s,n,r){var t=s==null?"":""+s;return t===""?null:t}function p(s,n,r,t,u,c){var i=s[a];if(l||i!==r||i===void 0){var e=f(r);(!l||e!==s.getAttribute("class"))&&(e==null?s.removeAttribute("class"):s.className=e),s[a]=r}return c}export{p as s};
