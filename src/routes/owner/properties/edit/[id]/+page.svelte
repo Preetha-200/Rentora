@@ -1,7 +1,7 @@
 <script>
   import { onMount } from "svelte";
   import { page } from "$app/stores";
-  import { propertyAPI } from "$lib/api";
+  import { api } from "$lib/api";
   import PropertyForm from "$lib/components/PropertyForm.svelte";
 
   let property = null;
@@ -12,7 +12,7 @@
   onMount(async () => {
     const id = $page.params.id;
     try {
-      const data = await propertyAPI.getById(id);
+      const data = await api.getById(id);
       if (data.id) {
         property = data;
       } else {
@@ -29,7 +29,7 @@
     submitting = true;
     errorMessage = "";
     try {
-      const result = await propertyAPI.update(property.id, formData);
+      const result = await api.update(property.id, formData);
       if (result.id) {
         window.location.href = "/owner/properties";
       } else {

@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { propertyAPI } from "$lib/api";
+  import { api } from "$lib/api";
   import PropertyForm from "$lib/components/PropertyForm.svelte";
 
   let loading = false;
@@ -12,7 +12,7 @@
     successMessage = "";
     errorMessage = "";
     try {
-      const result = await propertyAPI.create(formData);
+      const result = await api.create(formData);
       if (result.id) {
         successMessage = "Property added successfully!";
         // Optionally redirect after a delay

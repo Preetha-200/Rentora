@@ -35,7 +35,7 @@ export const api = {
 
 // src/lib/api.js (add these functions)
 
-export const propertyAPI = {
+export const api = {
   getAll: async (status = "") => {
     const url = status ? `/api/properties?status=${status}` : "/api/properties";
     const res = await fetch(url);
