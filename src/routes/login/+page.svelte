@@ -33,7 +33,7 @@
 			console.log('Stored token:', localStorage.getItem('token'));
 			console.log('Firebase token:', token);
 
-			const response = await api.get('/api/auth/profile');
+			const response = await api.auth.getProfile();
 
 			localStorage.setItem('rentora_user', JSON.stringify(response.user));
 
@@ -49,7 +49,7 @@
 
 			switch (response.user.role) {
 				case 'tenant':
-					goto('/');
+					goto('/tenant');
 					break;
 
 				case 'owner':
@@ -61,7 +61,7 @@
 					break;
 
 				default:
-					goto('/');
+					goto('/tenant');
 			}
 		} catch (err) {
 			error = err.message;

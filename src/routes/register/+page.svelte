@@ -45,9 +45,9 @@
 			const response = await api.post('/api/auth/register', {
 				name,
 				email,
-				password,
 				phone,
-				role: selectedRole
+				role: selectedRole,
+				token
 			});
 
 			localStorage.setItem(
@@ -62,7 +62,7 @@
 			setTimeout(() => {
 				switch (response.user.role) {
 					case 'tenant':
-						goto('/');
+						goto('/tenant');
 						break;
 
 					case 'owner':
