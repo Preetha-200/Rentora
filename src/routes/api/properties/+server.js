@@ -192,7 +192,10 @@ export async function POST({ request, locals }) {
 			furnishing,
 			amenities,
 			ownerId: locals.user.id,
-			status: 'available',
+			status: 'Pending',
+            approvalReason: '',
+            approvedBy: '',
+            approvedAt: null,
 			images: imageUrls,
 			createdAt: new Date().toISOString(),
 			updatedAt: new Date().toISOString()
