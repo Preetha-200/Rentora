@@ -22,10 +22,6 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "firebase": "^12.15.0"
-  }
-=======
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -49,5 +45,4 @@
     "url": "https://github.com/Preetha-200/Rentora/issues"
   },
   "homepage": "https://github.com/Preetha-200/Rentora#readme"
->>>>>>> main
 }
