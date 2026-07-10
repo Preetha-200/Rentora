@@ -1,14 +1,12 @@
 const BASE_URL = 'http://localhost:5000/api';
 
-// Shared utility helper to perform standard JSON API fetches
 async function sendRequest(endpoint, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
-  
-  // Retrieve token from browser localStorage
+
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('rentora_token');
     if (token) {
-      headers['Authorization'] = token; // Sends "Bearer <token>" header automatically
+      headers['Authorization'] = token;
     }
   }
 
@@ -32,8 +30,6 @@ export const api = {
   put: (endpoint, body) => sendRequest(endpoint, 'PUT', body),
   delete: (endpoint) => sendRequest(endpoint, 'DELETE')
 };
-
-// src/lib/api.js (add these functions)
 
 export const api = {
   getAll: async (status = "") => {
