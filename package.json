@@ -15,9 +15,34 @@
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "autoprefixer": "^10.5.2",
+    "nodemon": "^3.1.14",
     "postcss": "^8.5.16",
     "svelte": "^5.0.0",
     "tailwindcss": "^3.4.19",
     "vite": "^5.0.0"
-  }
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^12.7.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.3",
+    "multer": "^2.2.0"
+  },
+  "description": "Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).",
+  "main": "postcss.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Preetha-200/Rentora.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Preetha-200/Rentora/issues"
+  },
+  "homepage": "https://github.com/Preetha-200/Rentora#readme"
 }
