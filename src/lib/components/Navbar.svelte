@@ -68,9 +68,7 @@
 
 			<!-- Logo -->
 			<a href="/" class="flex items-center gap-3 group" aria-label="Rentora Home">
-				<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-rentora-dark to-rentora-blue flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-200 group-hover:scale-105">
-					<span class="material-symbols-outlined text-white text-lg filled">apartment</span>
-				</div>
+				<img src="/logo.png" alt="Rentora Logo" class="h-10 w-10 object-contain"/>
 				<div class="flex flex-col leading-tight">
 					<span class="text-xl font-black tracking-widest text-rentora-dark">RENTORA</span>
 					<span class="text-[10px] font-semibold text-rentora-purple tracking-widest uppercase">Smart Rentals</span>

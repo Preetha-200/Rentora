@@ -41,6 +41,9 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const auth = admin.auth();
-const bucket = admin.storage().bucket();
+console.log('Bucket =', process.env.FIREBASE_STORAGE_BUCKET);
+const bucket = admin.storage().bucket(
+    process.env.FIREBASE_STORAGE_BUCKET
+);
 
 export { admin, db, auth, bucket };

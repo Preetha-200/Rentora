@@ -93,12 +93,17 @@
 	}
 
 	function openEditor(property) {
+		const p = $state.snapshot(property);
+
 		editingProperty = {
-			...structuredClone(property),
-			amenitiesStr: Array.isArray(property.amenities)
-				? property.amenities.join(', ')
-				: property.amenities || '',
-			newImages: []
+			...p,
+			images: [...(p.images ?? [])],
+			amenities: Array.isArray(p.amenities)
+				? [...p.amenities]
+				: p.amenities ?? [],
+			features: Array.isArray(p.features)
+				? [...p.features]
+				: p.features ?? []
 		};
 	}
 
@@ -433,9 +438,9 @@
 							<button
 								onclick={() => requestDelete(property.id)}
 								disabled={deletingId === property.id}
-								class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-red-200 text-red-600 font-semibold text-sm hover:bg-red-50 transition-all disabled:opacity-50">
+								class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-rentora-dark text-rentora-dark font-semibold text-sm hover:bg-red-50 transition-all disabled:opacity-50">
 								{#if deletingId === property.id}
-									<div class="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+									<div class="w-4 h-4 border-2 border-rentora-dark border-t-transparent rounded-full animate-spin"></div>
 								{:else}
 									<span class="material-symbols-outlined text-base">delete</span>
 								{/if}
