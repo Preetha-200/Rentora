@@ -1,6 +1,9 @@
 import admin from 'firebase-admin';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import dotenv from 'dotenv';
+dotenv.config();
+console.log(process.env.FIREBASE_STORAGE_BUCKET);
 
 let credential;
 

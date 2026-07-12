@@ -1,49 +1,51 @@
 <script>
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
+	import { authUser } from '$lib/stores/auth.js';
 
-	let loading = true;
-	let error = '';
-
-	let stats = {
+	let loading = $state(true);
+	let error = $state('');
+	let stats = $state({
 		pendingApprovals: 0,
-		deleteRequests: 0,
 		approvedProperties: 0,
 		totalUsers: 0,
 		totalOwners: 0,
-		totalTenants: 0
-	};
-
-	let recentProperties = [];
+		totalTenants: 0,
+		totalProperties: 0
+	});
+	let recentProperties = $state([]);
+	let recentUsers = $state([]);
 
 	async function loadDashboard() {
 		loading = true;
 		error = '';
-
 		try {
-			const [
-				pending,
-				deleteReq,
-				approved,
-				users
-			] = await Promise.all([
-				api.get('/api/admin/property-approval?status=Pending'),
-				api.get('/api/admin/property-approval?deleteRequests=true'),
-				api.get('/api/properties?status=Approved'),
+			const [propertiesData, usersData] = await Promise.allSettled([
+				api.get('/api/properties'),
 				api.get('/api/admin/users')
 			]);
 
-			stats.pendingApprovals = pending.length;
-			stats.deleteRequests = deleteReq.length;
-			stats.approvedProperties = approved.length;
-			stats.totalUsers = users.length;
-			stats.totalOwners = users.filter(u => u.role === 'owner').length;
-			stats.totalTenants = users.filter(u => u.role === 'tenant').length;
+			const props = propertiesData.status === 'fulfilled'
+				? (Array.isArray(propertiesData.value) ? propertiesData.value : [])
+				: [];
 
-			recentProperties = [...pending].slice(0, 5);
+			const users = usersData.status === 'fulfilled'
+				? (Array.isArray(usersData.value) ? usersData.value : usersData.value?.users || [])
+				: [];
+
+			recentProperties = props.slice(0, 6);
+			recentUsers = users.slice(0, 5);
+
+			stats = {
+				pendingApprovals: props.filter((p) => p.approvalStatus === 'Pending' || (!p.approvalStatus && p.status === 'Pending')).length,
+				approvedProperties: props.filter((p) => p.approvalStatus === 'Approved' || p.status === 'Approved').length,
+				totalProperties: props.length,
+				totalUsers: users.length,
+				totalOwners: users.filter((u) => u.role === 'owner').length,
+				totalTenants: users.filter((u) => u.role === 'tenant').length
+			};
 		} catch (err) {
-			error = err.message || 'Failed to load dashboard';
+			error = err.message;
 		} finally {
 			loading = false;
 		}
@@ -52,178 +54,153 @@
 	onMount(loadDashboard);
 </script>
 
-<h1 class="text-3xl font-bold text-rentora-dark mb-8">
-	Admin Dashboard
-</h1>
+<svelte:head>
+	<title>Admin Dashboard — Rentora</title>
+</svelte:head>
 
-{#if loading}
-
-<div class="bg-white rounded-2xl shadow-sm p-10 text-center">
-	Loading dashboard...
-</div>
-
-{:else}
-
-{#if error}
-<div class="mb-6 rounded-xl bg-red-100 text-red-700 p-4">
-	{error}
-</div>
-{/if}
-
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Pending Approvals</p>
-		<p class="text-4xl font-bold text-amber-600 mt-3">{stats.pendingApprovals}</p>
+<div class="max-w-7xl mx-auto animate-fade-in">
+	<!-- Header -->
+	<div class="mb-8">
+		<h1 class="text-3xl font-black text-rentora-dark">
+			Admin Dashboard
+		</h1>
+		<p class="text-gray-500 mt-1">Platform overview and management controls.</p>
 	</div>
 
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Delete Requests</p>
-		<p class="text-4xl font-bold text-red-600 mt-3">{stats.deleteRequests}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Approved Properties</p>
-		<p class="text-4xl font-bold text-green-600 mt-3">{stats.approvedProperties}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Registered Users</p>
-		<p class="text-4xl font-bold text-rentora-purple mt-3">{stats.totalUsers}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Property Owners</p>
-		<p class="text-4xl font-bold text-blue-600 mt-3">{stats.totalOwners}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Tenants</p>
-		<p class="text-4xl font-bold text-indigo-600 mt-3">{stats.totalTenants}</p>
-	</div>
-
-</div>
-
-<div class="grid lg:grid-cols-3 gap-8">
-
-	<div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border">
-
-		<div class="flex items-center justify-between p-6 border-b">
-			<h2 class="text-xl font-bold">Recent Pending Properties</h2>
-
-			<button
-				onclick={() => goto('/admin/approvals')}
-				class="text-rentora-purple font-semibold hover:underline">
-
-				View All
-
-			</button>
+	{#if loading}
+		<div class="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+			{#each [1,2,3,4,5,6] as _}
+				<div class="skeleton h-32 rounded-2xl"></div>
+			{/each}
+		</div>
+	{:else if error}
+		<div class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8 flex items-center gap-3">
+			<span class="material-symbols-outlined text-red-500">error</span>
+			<p class="text-red-700">{error}</p>
+		</div>
+	{:else}
+		<!-- Stats grid -->
+		<div class="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+			{#each [
+				{ label: 'Pending Approvals', value: stats.pendingApprovals, icon: 'pending_actions', color: 'from-amber-500 to-orange-500', href: '/admin/approvals', urgent: stats.pendingApprovals > 0 },
+				{ label: 'Approved Properties', value: stats.approvedProperties, icon: 'apartment', color: 'from-emerald-500 to-green-600', href: '/admin/approvals' },
+				{ label: 'Total Properties', value: stats.totalProperties, icon: 'domain', color: 'from-rentora-dark to-rentora-blue', href: '/admin/approvals' },
+				{ label: 'Total Users', value: stats.totalUsers, icon: 'group', color: 'from-rentora-purple to-rentora-purpleLight', href: '/admin/users' },
+				{ label: 'Property Owners', value: stats.totalOwners, icon: 'business_center', color: 'from-blue-500 to-blue-600', href: '/admin/users' },
+				{ label: 'Tenants', value: stats.totalTenants, icon: 'person', color: 'from-violet-500 to-purple-600', href: '/admin/users' }
+			] as stat}
+				<a href={stat.href} class="stat-card group relative overflow-hidden cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
+					{#if stat.urgent}
+						<span class="absolute top-4 right-4 w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+					{/if}
+					<div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-gradient-to-br {stat.color} opacity-10 translate-x-8 -translate-y-8 group-hover:opacity-20 transition-opacity"></div>
+					<div class="w-12 h-12 rounded-xl bg-gradient-to-br {stat.color} flex items-center justify-center mb-4 shadow-lg">
+						<span class="material-symbols-outlined text-white text-xl filled">{stat.icon}</span>
+					</div>
+					<div class="text-3xl font-black text-rentora-dark">{stat.value}</div>
+					<div class="text-sm font-medium text-gray-500 mt-1">{stat.label}</div>
+				</a>
+			{/each}
 		</div>
 
-		{#if recentProperties.length === 0}
-
-		<div class="p-10 text-center text-gray-500">
-			No pending approvals.
+		<!-- Quick actions -->
+		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+			{#each [
+				{ label: 'Review Property Approvals', icon: 'approval', href: '/admin/approvals', desc: 'Approve or reject pending listings', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+				{ label: 'Manage Users', icon: 'group', href: '/admin/users', desc: 'View and manage all user accounts', color: 'text-rentora-purple bg-rentora-purplePale border-rentora-purple/20' },
+				{ label: 'System Reports', icon: 'bar_chart', href: '/admin/reports', desc: 'View platform-wide analytics', color: 'text-rentora-blue bg-blue-50 border-blue-200' }
+			] as action}
+				<a href={action.href} class="flex items-center gap-4 p-5 rounded-2xl border-2 {action.color} hover:scale-[1.02] transition-all duration-200 bg-white">
+					<div class="w-12 h-12 rounded-xl {action.color} flex items-center justify-center shrink-0">
+						<span class="material-symbols-outlined text-xl filled">{action.icon}</span>
+					</div>
+					<div>
+						<div class="font-bold text-sm text-rentora-dark">{action.label}</div>
+						<div class="text-xs text-gray-400 mt-0.5">{action.desc}</div>
+					</div>
+					<span class="material-symbols-outlined text-gray-300 ml-auto">arrow_forward</span>
+				</a>
+			{/each}
 		</div>
 
-		{:else}
-
-		<table class="w-full">
-
-			<thead class="bg-gray-50">
-
-				<tr>
-
-					<th class="text-left p-4">Property</th>
-					<th class="text-left p-4">Owner</th>
-					<th class="text-left p-4">Rent</th>
-
-				</tr>
-
-			</thead>
-
-			<tbody>
-
-				{#each recentProperties as property}
-
-				<tr class="border-t">
-
-					<td class="p-4">
-						<div class="font-semibold">{property.title}</div>
-						<div class="text-sm text-gray-500">{property.city}</div>
-					</td>
-
-					<td class="p-4">
-						{property.ownerName}
-					</td>
-
-					<td class="p-4">
-						₹{property.rent}
-					</td>
-
-				</tr>
-
-				{/each}
-
-			</tbody>
-
-		</table>
-
-		{/if}
-
-	</div>
-
-	<div class="bg-white rounded-2xl shadow-sm border p-6">
-
-		<h2 class="text-xl font-bold mb-6">
-			Quick Actions
-		</h2>
-
-		<div class="space-y-4">
-
-			<button onclick={() => goto('/admin/approvals')} class="w-full rounded-xl bg-rentora-purple text-white py-3 font-semibold hover:opacity-90">
-				Manage Property Approvals
-			</button>
-
-			<button onclick={() => goto('/admin/users')} class="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:opacity-90">
-				Manage Users
-			</button>
-
-			<button onclick={() => goto('/admin/reports')} class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold hover:opacity-90">
-				View Reports
-			</button>
-
-		</div>
-
-		<div class="border-t mt-8 pt-6">
-
-			<h3 class="font-semibold mb-4">
-				System Health
-			</h3>
-
-			<div class="space-y-3 text-sm">
-
-				<div class="flex justify-between">
-					<span>Pending Reviews</span>
-					<span class="font-semibold text-amber-600">{stats.pendingApprovals}</span>
+		<!-- Two columns: recent properties + users -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<!-- Recent Properties -->
+			<div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+				<div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+					<div>
+						<h2 class="text-lg font-bold text-rentora-dark">Recent Listings</h2>
+						<p class="text-xs text-gray-400 mt-0.5">Latest property submissions</p>
+					</div>
+					<a href="/admin/approvals" class="text-sm font-semibold text-rentora-purple hover:underline flex items-center gap-1">
+						Review <span class="material-symbols-outlined text-base">arrow_forward</span>
+					</a>
 				</div>
-
-				<div class="flex justify-between">
-					<span>Delete Requests</span>
-					<span class="font-semibold text-red-600">{stats.deleteRequests}</span>
+				<div class="divide-y divide-gray-50">
+					{#if recentProperties.length === 0}
+						<div class="py-10 text-center text-gray-400">
+							<span class="material-symbols-outlined text-4xl block mb-2">apartment</span>
+							No properties yet
+						</div>
+					{:else}
+						{#each recentProperties as prop}
+							<div class="px-6 py-4 flex justify-between items-center">
+								<div>
+									<p class="font-semibold text-sm text-rentora-dark line-clamp-1">{prop.title}</p>
+									<p class="text-xs text-gray-400 mt-0.5">{prop.city} · ₹{Number(prop.rent || 0).toLocaleString('en-IN')}/mo</p>
+								</div>
+								<span class="text-xs font-bold px-2.5 py-1 rounded-full shrink-0
+									{(prop.approvalStatus || prop.status) === 'Approved' ? 'bg-green-100 text-green-700' :
+									 (prop.approvalStatus || prop.status) === 'Rejected' ? 'bg-red-100 text-red-700' :
+									 'bg-amber-100 text-amber-700'}">
+									{prop.approvalStatus || prop.status || 'Pending'}
+								</span>
+							</div>
+						{/each}
+					{/if}
 				</div>
-
-				<div class="flex justify-between">
-					<span>Approved Listings</span>
-					<span class="font-semibold text-green-600">{stats.approvedProperties}</span>
-				</div>
-
 			</div>
 
+			<!-- Recent Users -->
+			<div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+				<div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+					<div>
+						<h2 class="text-lg font-bold text-rentora-dark">Recent Users</h2>
+						<p class="text-xs text-gray-400 mt-0.5">Latest registrations</p>
+					</div>
+					<a href="/admin/users" class="text-sm font-semibold text-rentora-purple hover:underline flex items-center gap-1">
+						Manage <span class="material-symbols-outlined text-base">arrow_forward</span>
+					</a>
+				</div>
+				<div class="divide-y divide-gray-50">
+					{#if recentUsers.length === 0}
+						<div class="py-10 text-center text-gray-400">
+							<span class="material-symbols-outlined text-4xl block mb-2">group</span>
+							No users yet
+						</div>
+					{:else}
+						{#each recentUsers as u}
+							<div class="px-6 py-4 flex items-center justify-between">
+								<div class="flex items-center gap-3">
+									<div class="w-9 h-9 rounded-full bg-gradient-to-br from-rentora-purple to-rentora-dark text-white flex items-center justify-center text-sm font-bold shrink-0">
+										{u.name?.charAt(0)?.toUpperCase() || '?'}
+									</div>
+									<div>
+										<p class="font-semibold text-sm text-rentora-dark">{u.name}</p>
+										<p class="text-xs text-gray-400 truncate max-w-[160px]">{u.email}</p>
+									</div>
+								</div>
+								<span class="text-xs font-bold px-2.5 py-1 rounded-full capitalize
+									{u.role === 'admin' ? 'bg-rentora-purplePale text-rentora-purple' :
+									 u.role === 'owner' ? 'bg-blue-50 text-blue-600' :
+									 'bg-gray-100 text-gray-600'}">
+									{u.role}
+								</span>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
 		</div>
-
-	</div>
-
+	{/if}
 </div>
-
-{/if}

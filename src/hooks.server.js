@@ -21,7 +21,9 @@ export async function handle({ event, resolve }) {
 				};
 			}
 		} catch (error) {
-			console.error('Firebase auth verification failed:', error);
+			// Token is invalid or expired — clear the stale cookie
+			console.error('Firebase auth verification failed:', error.message);
+			event.cookies.delete('token', { path: '/' });
 		}
 	}
 
