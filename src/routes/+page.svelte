@@ -154,7 +154,7 @@
 </script>
 
 <svelte:head>
-	<title>Rentora — Smart Property Rental Platform</title>
+	<title>Rentora</title>
 	<meta name="description" content="Find verified rental properties, manage maintenance, track payments, and connect with owners — all on Rentora, India's smartest rental platform." />
 </svelte:head>
 
