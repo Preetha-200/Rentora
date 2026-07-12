@@ -1,11 +1,15 @@
 <script>
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
 	import { api } from '$lib/api';
+	import { formatCurrency } from '$lib/utils/format.js';
+
+	let { data } = $props();
 
 	let property = $state(null);
-	let loading = $state(true);
-	let error = $state('');
+
+	$effect(() => {
+		property = data.property;
+	});
 
 	let activeImage = $state(0);
 	let applying = $state(false);
@@ -18,24 +22,6 @@
 		typeof window !== 'undefined'
 			? JSON.parse(localStorage.getItem('rentora_user') || 'null')
 			: null;
-
-	async function loadProperty() {
-		loading = true;
-		error = '';
-
-		try {
-			property = await api.get(`/api/properties/${page.params.id}`);
-			activeImage = 0;
-
-			if (currentUser?.role === 'tenant') {
-				await checkExistingApplication();
-			}
-		} catch (err) {
-			error = err.message || 'Failed to load property.';
-		} finally {
-			loading = false;
-		}
-	}
 
 	async function checkExistingApplication() {
 		checkingApplication = true;
@@ -74,11 +60,11 @@
 		}
 	}
 
-	function formatRent(rent) {
-		return `₹${Number(rent || 0).toLocaleString('en-IN')}`;
-	}
-
-	onMount(loadProperty);
+	onMount(() => {
+		if (currentUser?.role === 'tenant') {
+			checkExistingApplication();
+		}
+	});
 
 	const isOwnProperty = $derived(
 		currentUser && property && currentUser.id === property.ownerId
@@ -103,21 +89,8 @@
 	);
 </script>
 
-{#if loading}
-	<div class="max-w-7xl mx-auto px-6 py-12">
-		<div class="bg-white rounded-3xl shadow-sm p-10 text-center text-gray-500">
-			Loading property...
-		</div>
-	</div>
-{:else if error}
-	<div class="max-w-7xl mx-auto px-6 py-12">
-		<div class="bg-red-100 text-red-700 rounded-2xl p-6">
-			{error}
-		</div>
-	</div>
-{:else}
-	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-		<div class="grid lg:grid-cols-3 gap-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+	<div class="grid lg:grid-cols-3 gap-8">
 			<!-- Main content: gallery + details -->
 			<div class="lg:col-span-2 space-y-6">
 				<!-- Image gallery -->
@@ -173,7 +146,7 @@
 
 						<div class="text-left sm:text-right shrink-0">
 							<p class="text-3xl sm:text-4xl font-black text-rentora-purple">
-								{formatRent(property.rent)}
+								{formatCurrency(property.rent)}
 							</p>
 							<p class="text-gray-400 text-sm font-medium">per month</p>
 						</div>
@@ -297,4 +270,4 @@
 			</div>
 		</div>
 	</div>
-{/if}
+

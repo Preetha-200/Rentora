@@ -48,7 +48,8 @@
 
 	onMount(initializePage);
 
-	async function fileRequest() {
+	async function fileRequest(event) {
+		event.preventDefault();
 		error = '';
 		success = '';
 
@@ -87,10 +88,7 @@
 
 	async function resolveIssue(id) {
 		try {
-			await api.post('/api/maintenance/update-status', {
-				complaintId: id,
-				status: 'Resolved'
-			});
+			await api.patch(`/api/maintenance/${id}`, { status: 'Resolved' });
 			await loadIssues();
 		} catch (err) {
 			error = err.message;
@@ -137,15 +135,16 @@
 					</div>
 				{/if}
 
-				<form on:submit|preventDefault={fileRequest} class="space-y-4">
+				<form onsubmit={fileRequest} class="space-y-4">
 
 					<div>
-						<label class="block text-sm font-medium mb-1">
-							Property
-						</label>
+						<label for="maint-property" class="block text-sm font-medium mb-1">
+						Property
+					</label>
 
-						<select
-							bind:value={selectedProperty}
+					<select
+						id="maint-property"
+						\2
 							required
 							class="w-full px-3 py-2 border rounded-xl">
 
@@ -163,12 +162,13 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium mb-1">
-							Describe the Issue
-						</label>
+						<label for="maint-issue" class="block text-sm font-medium mb-1">
+						Describe the Issue
+					</label>
 
-						<textarea
-							bind:value={issueDescription}
+					<textarea
+						id="maint-issue"
+						\2
 							required
 							class="w-full px-3 py-2 border rounded-xl h-24 resize-none"
 							placeholder="Plumbing leak, broken lock etc.">
@@ -176,12 +176,13 @@
 					</div>
 
 					<div>
-						<label class="block text-sm font-medium mb-1">
-							Priority
-						</label>
+						<label for="maint-priority" class="block text-sm font-medium mb-1">
+						Priority
+					</label>
 
-						<select
-							bind:value={selectedPriority}
+					<select
+						id="maint-priority"
+						\2
 							class="w-full px-3 py-2 border rounded-xl">
 
 							<option value="Low">
@@ -256,7 +257,7 @@
 							{:else if issue.status === 'Checking'}
 
 								<button
-									on:click={() => resolveIssue(issue.id)}
+									onclick={() => resolveIssue(issue.id)}
 									class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
 									Resolve
 								</button>

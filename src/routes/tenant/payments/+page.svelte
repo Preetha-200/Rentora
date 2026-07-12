@@ -2,9 +2,9 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 
-	let payments = [];
-	let loading = true;
-	let error = '';
+	let payments = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	async function loadPayments() {
 		loading = true;
@@ -92,7 +92,7 @@
 
 						{#if payment.status !== 'Paid'}
 							<button
-								on:click={() => processPayment(payment.id)}
+								onclick={() => processPayment(payment.id)}
 								class="bg-rentora-purple text-white px-4 py-2 rounded-xl font-semibold hover:bg-rentora-purpleLight">
 								Pay Rent
 							</button>

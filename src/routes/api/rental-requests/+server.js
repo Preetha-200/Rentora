@@ -8,6 +8,46 @@ export async function GET({ url, locals }) {
 		}
 
 		const propertyId = url.searchParams.get('propertyId');
+		const owner = url.searchParams.get('owner');
+		const mine = url.searchParams.get('mine');
+
+		if (owner === 'true') {
+			const snapshot = await db
+				.collection('rentalRequests')
+				.where('ownerId', '==', locals.user.id)
+				.get();
+
+			const requests = snapshot.docs.map((doc) => ({
+				id: doc.id,
+				...doc.data()
+			}));
+
+			return json(requests);
+		}
+
+		if (mine === 'true') {
+			const snapshot = await db
+				.collection('rentalRequests')
+				.where('tenantId', '==', locals.user.id)
+				.get();
+
+			const requests = await Promise.all(snapshot.docs.map(async (doc) => {
+				const req = { id: doc.id, ...doc.data() };
+
+				if (req.ownerId) {
+					const ownerDoc = await db.collection('users').doc(req.ownerId).get();
+					if (ownerDoc.exists) {
+						req.ownerName = ownerDoc.data().name || 'Property Owner';
+					}
+				}
+
+				return req;
+			}));
+
+			requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+			return json(requests);
+		}
 
 		if (!propertyId) {
 			return json({ message: 'propertyId is required' }, { status: 400 });

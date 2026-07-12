@@ -73,7 +73,7 @@
 		</div>
 
 		<button
-			on:click={generateInvoice}
+			onclick={generateInvoice}
 			class="mt-4 bg-rentora-purple text-white px-5 py-2 rounded-lg">
 			Generate Invoice
 		</button>

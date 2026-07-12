@@ -1,17 +1,18 @@
 import { auth, db } from '$lib/server/firebase';
 
 export async function handle({ event, resolve }) {
-	const token = event.request.headers
-		.get('authorization')
-		?.replace('Bearer ', '');
-
 	event.locals.user = null;
+
+	const token = event.cookies.get('token');
 
 	if (token) {
 		try {
 			const decoded = await auth.verifyIdToken(token);
 
-			const userDoc = await db.collection('users').doc(decoded.uid).get();
+			const userDoc = await db
+				.collection('users')
+				.doc(decoded.uid)
+				.get();
 
 			if (userDoc.exists) {
 				event.locals.user = {
@@ -20,7 +21,7 @@ export async function handle({ event, resolve }) {
 				};
 			}
 		} catch (error) {
-			console.error(error);
+			console.error('Firebase auth verification failed:', error);
 		}
 	}
 

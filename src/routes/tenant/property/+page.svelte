@@ -61,7 +61,7 @@ async function applyForProperty(propertyId) {
 							<span>{property.furnishing}</span>
 						</div>
 						<p class="text-2xl font-bold text-rentora-purple mt-5">₹{property.rent}/month</p>
-						<button on:click={() => applyForProperty(property.id)}
+						<button onclick={() => applyForProperty(property.id)}
 							class="w-full mt-5 py-3 rounded-xl bg-rentora-purple text-white font-semibold hover:opacity-90">
 							Apply for Rental
 						</button>

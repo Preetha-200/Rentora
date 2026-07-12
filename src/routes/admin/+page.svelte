@@ -112,7 +112,7 @@
 			<h2 class="text-xl font-bold">Recent Pending Properties</h2>
 
 			<button
-				on:click={() => goto('/admin/approvals')}
+				onclick={() => goto('/admin/approvals')}
 				class="text-rentora-purple font-semibold hover:underline">
 
 				View All
@@ -181,15 +181,15 @@
 
 		<div class="space-y-4">
 
-			<button on:click={() => goto('/admin/approvals')} class="w-full rounded-xl bg-rentora-purple text-white py-3 font-semibold hover:opacity-90">
+			<button onclick={() => goto('/admin/approvals')} class="w-full rounded-xl bg-rentora-purple text-white py-3 font-semibold hover:opacity-90">
 				Manage Property Approvals
 			</button>
 
-			<button on:click={() => goto('/admin/users')} class="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:opacity-90">
+			<button onclick={() => goto('/admin/users')} class="w-full rounded-xl bg-blue-600 text-white py-3 font-semibold hover:opacity-90">
 				Manage Users
 			</button>
 
-			<button on:click={() => goto('/admin/reports')} class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold hover:opacity-90">
+			<button onclick={() => goto('/admin/reports')} class="w-full rounded-xl bg-green-600 text-white py-3 font-semibold hover:opacity-90">
 				View Reports
 			</button>
 

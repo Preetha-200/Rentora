@@ -10,7 +10,7 @@
         loading = true;
         error = '';
         try {
-            const response = await api.get('/rental-requests/incoming');
+            const response = await api.get('/api/rental-requests/incoming');
             requests = response || [];
         } catch (err) {
             error = err.message;
@@ -55,8 +55,8 @@
                         </div>
                         {#if request.status === 'Pending'}
                             <div class="flex gap-2">
-                                <button on:click={() => handleRequest(request.id, 'approve')} class="bg-green-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-green-700">Approve</button>
-                                <button on:click={() => handleRequest(request.id, 'reject')} class="bg-red-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-red-700">Reject</button>
+                                <button onclick={() => handleRequest(request.id, 'approve')} class="bg-green-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-green-700">Approve</button>
+                                <button onclick={() => handleRequest(request.id, 'reject')} class="bg-red-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-red-700">Reject</button>
                             </div>
                         {/if}
                     </div>

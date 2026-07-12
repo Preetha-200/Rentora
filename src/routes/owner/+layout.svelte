@@ -15,7 +15,7 @@
 	];
 
 	onMount(() => {
-		const token = localStorage.getItem('rentora_token');
+		const token = localStorage.getItem('token');
 		const user = JSON.parse(localStorage.getItem('rentora_user') || '{}');
 
 		if (!token) {
@@ -30,7 +30,7 @@
 </script>
 
 <div class="flex">
-	<Sidebar role="Owner" links={ownerLinks} />
+	<Sidebar role="owner" links={ownerLinks} />
 
 	<main class="flex-1 p-8 min-h-screen">
 		{@render children()}

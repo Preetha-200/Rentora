@@ -14,7 +14,6 @@ export async function GET({ locals }) {
 			.collection('rentalRequests')
 			.where('ownerId', '==', locals.user.id)
 			.where('status', '==', 'Pending')
-			.orderBy('createdAt', 'desc')
 			.get();
 
 		const requests = await Promise.all(snapshot.docs.map(async (doc) => {
@@ -24,7 +23,7 @@ export async function GET({ locals }) {
 			};
 			const tenantDoc = await db.collection('users').doc(request.tenantId).get();
 			if (tenantDoc.exists) {
-				request.tenantName = tenantDoc.data().fullName || 'Unknown';
+				request.tenantName = tenantDoc.data().name || 'Unknown';
 				request.tenantEmail = tenantDoc.data().email || '';
 				request.tenantPhone = tenantDoc.data().phone || '';
 			}
@@ -38,6 +37,8 @@ export async function GET({ locals }) {
 			}
 			return request;
 		}));
+
+		requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
 		return json(requests);
 	} catch (error) {

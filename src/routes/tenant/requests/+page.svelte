@@ -2,15 +2,15 @@
 import { onMount } from 'svelte';
 import { api } from '$lib/api';
 
-let requests = [];
-let loading = true;
-let error = '';
+let requests = $state([]);
+let loading = $state(true);
+let error = $state('');
 
 async function loadRequests() {
 	loading = true;
 	error = '';
 	try {
-		requests = await api.get('/api/requests');
+		requests = await api.get('/api/rental-requests?mine=true');
 	} catch (err) {
 		error = err.message || 'Failed to load applications.';
 	} finally {

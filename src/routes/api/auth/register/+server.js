@@ -3,7 +3,7 @@ import { auth, db } from '$lib/server/firebase';
 
 export async function POST({ request }) {
 	try {
-		const { name, email, phone, phoneVerified, role, token } = await request.json();
+		const { name, email, phone, role, token } = await request.json();
 
 		const decoded = await auth.verifyIdToken(token);
 
@@ -12,7 +12,6 @@ export async function POST({ request }) {
 			name,
 			email,
 			phone: phone || '',
-			phoneVerified: !!phoneVerified,
 			role: role || 'tenant',
 			createdAt: new Date()
 		};

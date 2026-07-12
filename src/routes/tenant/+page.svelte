@@ -2,28 +2,28 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 
-	let loading = true;
-	let error = '';
+	let loading = $state(true);
+	let error = $state('');
 
-	let activeRequests = 0;
-	let unpaidPayments = 0;
-	let activeIssues = 0;
+	let activeRequests = $state(0);
+	let unpaidPayments = $state(0);
+	let activeIssues = $state(0);
 
 	onMount(async () => {
 		try {
-			const requests = await api.get('/api/requests/my');
+			const requests = await api.get('/api/rental-requests?mine=true');
 			activeRequests = requests.filter(
 				(r) => r.status === 'Pending'
 			).length;
 
-			const payments = await api.get('/api/payments/my');
-			unpaidPayments = payments.filter(
+			const paymentsResponse = await api.get('/api/payments');
+			unpaidPayments = (paymentsResponse.payments || []).filter(
 				(p) => p.status !== 'Paid'
 			).length;
 
-			const maintenance = await api.get('/api/maintenance/my');
+			const maintenance = await api.get('/api/maintenance');
 			activeIssues = (maintenance.complaints || []).filter(
-				(issue) => issue.status !== 'Completed'
+				(issue) => issue.status !== 'Resolved'
 			).length;
 		} catch (err) {
 			error = err.message || 'Failed to load dashboard';

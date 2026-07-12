@@ -1,6 +1,9 @@
 <script>
     import { onMount } from 'svelte';
+    import { enhance } from '$app/forms';
     import { api } from '$lib/api';
+    import { auth } from '$lib/firebase';
+    import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 
     let loading = $state(true);
     let properties = $state([]);
@@ -16,9 +19,9 @@
         error = '';
         try {
             if (activeTab === 'pending') {
-                properties = await api.get('/admin/property-approval?status=Pending');
+                properties = await api.get('/api/admin/property-approval?status=Pending');
             } else {
-                deleteRequests = await api.get('/admin/property-approval?deleteRequests=true');
+                deleteRequests = await api.get('/api/admin/property-approval?deleteRequests=true');
             }
         } catch (err) {
             error = err.message;
@@ -31,16 +34,22 @@
 
     onMount(loadPendingProperties);
 
-    async function approve(propertyId) {
-        processingId = propertyId;
-        try {
-            await api.put('/admin/property-approval', { propertyId, action: 'approve' });
-            await loadPendingProperties();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            processingId = '';
-        }
+    // Populates the hidden `token` field with a fresh Firebase ID token right
+    // before the form actually submits, since SvelteKit form actions don't
+    // receive our client api.js's Authorization header automatically.
+    async function withFreshToken({ formData }) {
+        const token = await auth.currentUser?.getIdToken();
+        formData.set('token', token || '');
+
+        return async ({ result, update }) => {
+            if (result.type === 'failure') {
+                alert(result.data?.message || 'Action failed.');
+            } else {
+                closeReject();
+                await loadPendingProperties();
+            }
+            await update({ reset: false });
+        };
     }
 
     function openReject(property) {
@@ -53,32 +62,11 @@
         rejectionReason = '';
     }
 
-    async function reject() {
-        if (!rejectionReason.trim()) {
-            alert('Please enter a rejection reason.');
-            return;
-        }
-        processingId = selectedProperty.id;
-        try {
-            await api.put('/admin/property-approval', {
-                propertyId: selectedProperty.id,
-                action: 'reject',
-                reason: rejectionReason
-            });
-            closeReject();
-            await loadPendingProperties();
-        } catch (err) {
-            alert(err.message);
-        } finally {
-            processingId = '';
-        }
-    }
-
     async function approveDelete(propertyId) {
         if (!confirm('Approve deletion of this property?')) return;
         processingId = propertyId;
         try {
-            await api.put('/admin/property-approval', { propertyId, action: 'approveDelete' });
+            await api.put('/api/admin/property-approval', { propertyId, action: 'approveDelete' });
             await loadPendingProperties();
         } catch (err) {
             alert(err.message);
@@ -91,7 +79,7 @@
         if (!confirm('Reject deletion request?')) return;
         processingId = propertyId;
         try {
-            await api.put('/admin/property-approval', { propertyId, action: 'rejectDelete' });
+            await api.put('/api/admin/property-approval', { propertyId, action: 'rejectDelete' });
             await loadPendingProperties();
         } catch (err) {
             alert(err.message);
@@ -109,10 +97,10 @@
 <h1 class="text-3xl font-bold text-rentora-dark mb-6">Property Approvals</h1>
 
 <div class="flex gap-4 mb-6">
-    <button on:click={() => switchTab('pending')} class={`px-6 py-2 rounded-xl font-semibold ${activeTab === 'pending' ? 'bg-rentora-purple text-white' : 'bg-gray-200'}`}>
+    <button onclick={() => switchTab('pending')} class={`px-6 py-2 rounded-xl font-semibold ${activeTab === 'pending' ? 'bg-rentora-purple text-white' : 'bg-gray-200'}`}>
         Pending Approvals ({properties.length})
     </button>
-    <button on:click={() => switchTab('delete')} class={`px-6 py-2 rounded-xl font-semibold ${activeTab === 'delete' ? 'bg-red-600 text-white' : 'bg-gray-200'}`}>
+    <button onclick={() => switchTab('delete')} class={`px-6 py-2 rounded-xl font-semibold ${activeTab === 'delete' ? 'bg-red-600 text-white' : 'bg-gray-200'}`}>
         Delete Requests ({deleteRequests.length})
     </button>
 </div>
@@ -149,8 +137,12 @@
                             </div>
                         {/if}
                         <div class="flex gap-3 pt-2">
-                            <button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} on:click={() => approve(property.id)}>Approve</button>
-                            <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} on:click={() => openReject(property)}>Reject</button>
+                            <form method="POST" use:enhance={withFreshToken} class="flex-1">
+                                <input type="hidden" name="propertyId" value={property.id} />
+                                <input type="hidden" name="token" value="" />
+                                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl font-semibold">Approve</button>
+                            </form>
+                            <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} onclick={() => openReject(property)}>Reject</button>
                         </div>
                     </div>
                 </div>
@@ -171,8 +163,8 @@
                             <p class="text-gray-500 text-sm">{property.address}, {property.city}</p>
                         </div>
                         <div class="flex gap-3 pt-2">
-                            <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} on:click={() => approveDelete(property.id)}>Approve Delete</button>
-                            <button class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} on:click={() => rejectDelete(property.id)}>Reject Delete</button>
+                            <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} onclick={() => approveDelete(property.id)}>Approve Delete</button>
+                            <button class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-xl font-semibold disabled:opacity-50" disabled={processingId === property.id} onclick={() => rejectDelete(property.id)}>Reject Delete</button>
                         </div>
                     </div>
                 </div>
@@ -182,14 +174,27 @@
 {/if}
 
 {#if selectedProperty}
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-            <h2 class="text-xl font-bold mb-4">Reject Property</h2>
-            <textarea bind:value={rejectionReason} rows="5" placeholder="Enter rejection reason..." class="w-full border rounded-xl p-3"></textarea>
-            <div class="flex gap-3 mt-6">
-                <button class="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold" on:click={reject}>Confirm Reject</button>
-                <button class="flex-1 border py-3 rounded-xl font-semibold" on:click={closeReject}>Cancel</button>
-            </div>
-        </div>
-    </div>
+    <ConfirmModal
+        open={true}
+        title="Reject Property"
+        confirmLabel="Confirm Reject"
+        onCancel={closeReject}
+        onConfirm={() => document.getElementById('reject-form').requestSubmit()}>
+        {#snippet children()}
+            <form
+                method="POST"
+                action="?/reject"
+                use:enhance={withFreshToken}
+                id="reject-form">
+                <input type="hidden" name="propertyId" value={selectedProperty.id} />
+                <input type="hidden" name="token" value="" />
+                <textarea
+                    name="reason"
+                    bind:value={rejectionReason}
+                    rows="5"
+                    placeholder="Enter rejection reason..."
+                    class="w-full border rounded-xl p-3"></textarea>
+            </form>
+        {/snippet}
+    </ConfirmModal>
 {/if}

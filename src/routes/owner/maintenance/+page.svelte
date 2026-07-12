@@ -24,10 +24,7 @@
 
 	async function updateStatus(id, status) {
 		try {
-			await api.post('/api/maintenance/update-status', {
-				complaintId: id,
-				status
-			});
+			await api.patch(`/api/maintenance/${id}`, { status });
 
 			await loadIssues();
 		} catch (err) {
@@ -94,7 +91,7 @@
             {#if issue.status === 'Pending'}
 
               <button
-                on:click={() => updateStatus(issue.id, 'Checking')}
+                onclick={() => updateStatus(issue.id, 'Checking')}
                 class="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700">
 
                 In Progress

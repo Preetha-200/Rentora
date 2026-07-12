@@ -3,9 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
 
-	let properties = [];
-	let loading = true;
-	let error = '';
+	let properties = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	let searchQuery = $state('');
 	let selectedType = $state('All');
@@ -16,7 +16,7 @@
 		? JSON.parse(localStorage.getItem('rentora_user') || 'null')
 		: null;
 
-	let propertyTypes = ['All'];
+	let propertyTypes = $state(['All']);
 
 	async function loadProperties() {
 		loading = true;
@@ -232,7 +232,7 @@
 									</span>
 								</div>
 
-								<button on:click={() => viewProperty(property.id)} class="bg-rentora-dark text-white text-xs px-4 py-2.5 rounded-xl font-semibold hover:bg-rentora-purple transition">
+								<button onclick={() => viewProperty(property.id)} class="bg-rentora-dark text-white text-xs px-4 py-2.5 rounded-xl font-semibold hover:bg-rentora-purple transition">
 									View Details
 								</button>
 

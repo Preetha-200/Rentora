@@ -21,7 +21,7 @@
 		loadingData = true;
 		error = '';
 		try {
-			requests = await api.get('/api/requests/owner');
+			requests = await api.get('/api/rental-requests?owner=true');
 			const maintenance = await api.get('/api/maintenance');
 			issues = maintenance.complaints || [];
 			requestStats = {
@@ -117,7 +117,7 @@
 				</p>
 			</div>
 			<button
-				on:click={handleLogout}
+				onclick={handleLogout}
 				class="mt-4 md:mt-0 bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2.5 rounded-xl font-semibold transition">
 				Sign Out
 			</button>
@@ -228,7 +228,7 @@
 											{#if req.status === 'Pending'}
 												<div class="flex justify-end gap-2">
 													<button
-														on:click={() =>
+														onclick={() =>
 															updateRequest(
 																req.id,
 																'Approved'
@@ -237,7 +237,7 @@
 														Approve
 													</button>
 													<button
-														on:click={() =>
+														onclick={() =>
 															updateRequest(
 																req.id,
 																'Rejected'
@@ -286,7 +286,7 @@
 								<div class="flex flex-wrap gap-2 h-fit">
 									{#if issue.status !== 'Pending'}
 										<button
-											on:click={() =>
+											onclick={() =>
 												resolveTicket(
 													issue.id,
 													'Pending'
@@ -297,7 +297,7 @@
 									{/if}
 									{#if issue.status !== 'In Progress'}
 										<button
-											on:click={() =>
+											onclick={() =>
 												resolveTicket(
 													issue.id,
 													'In Progress'
@@ -308,7 +308,7 @@
 									{/if}
 									{#if issue.status !== 'Completed'}
 										<button
-											on:click={() =>
+											onclick={() =>
 												resolveTicket(
 													issue.id,
 													'Completed'

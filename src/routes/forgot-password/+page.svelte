@@ -58,8 +58,9 @@
 		{:else}
 			<form onsubmit={handleReset} class="space-y-4">
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+					<label for="reset-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
 					<input
+						id="reset-email"
 						type="email"
 						bind:value={email}
 						required

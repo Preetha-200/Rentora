@@ -1,31 +1,21 @@
 <script>
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api } from '$lib/api';
 
-	let properties = [];
-	let filteredProperties = [];
-	let loading = true;
-	let error = '';
+	let { data } = $props();
 
-	let search = '';
-	let city = '';
-	let minRent = '';
-	let maxRent = '';
+	let properties = $state([]);
+	let filteredProperties = $state([]);
+	let error = $state('');
 
-	async function loadProperties() {
-		loading = true;
-		error = '';
+	$effect(() => {
+		properties = data.properties;
+		error = data.loadError || '';
+	});
 
-		try {
-			properties = await api.get('/api/properties?status=Approved');
-			filterProperties();
-		} catch (err) {
-			error = err.message || 'Failed to load properties.';
-		} finally {
-			loading = false;
-		}
-	}
+	let search = $state('');
+	let city = $state('');
+	let minRent = $state('');
+	let maxRent = $state('');
 
 	function filterProperties() {
 		filteredProperties = properties.filter((property) => {
@@ -48,13 +38,20 @@
 		});
 	}
 
-	$: filterProperties();
+	// Re-run the filter any time a search input changes. This replaces the
+	// old Svelte 4 `$: filterProperties();` reactive statement with the
+	// Svelte 5 rune equivalent.
+	$effect(() => {
+		search;
+		city;
+		minRent;
+		maxRent;
+		filterProperties();
+	});
 
 	function openProperty(id) {
 		goto(`/properties/${id}`);
 	}
-
-	onMount(loadProperties);
 </script>
 
 <div class="max-w-7xl mx-auto px-6 py-10">
@@ -72,12 +69,7 @@
 		</div>
 	</div>
 
-	{#if loading}
-		<div class="bg-white rounded-3xl shadow-sm p-10 text-center">
-			Loading properties...
-		</div>
-
-	{:else if error}
+	{#if error}
 		<div class="bg-red-100 text-red-700 rounded-2xl p-6">
 			{error}
 		</div>
@@ -107,7 +99,7 @@
 						<div class="flex justify-between text-sm text-gray-600 mt-5">
 							<span>🛏 {property.bedrooms} Beds</span>
 							<span>🛁 {property.bathrooms} Baths</span>
-							<span>📐 {property.area} sq.ft.</span>
+							<span class="capitalize">🛋 {property.furnishing}</span>
 						</div>
 						<p class="text-gray-600 mt-5 line-clamp-3">
 							{property.description}
@@ -116,7 +108,7 @@
 							<span class="px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
 								Verified
 							</span>
-							<button on:click={() => openProperty(property.id)} class="px-5 py-3 rounded-xl bg-rentora-purple text-white font-semibold hover:bg-rentora-purpleLight transition">
+							<button onclick={() => openProperty(property.id)} class="px-5 py-3 rounded-xl bg-rentora-purple text-white font-semibold hover:bg-rentora-purpleLight transition">
 								View Details
 							</button>
 						</div>

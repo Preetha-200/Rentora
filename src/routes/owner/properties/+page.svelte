@@ -147,7 +147,7 @@
 				Add New Property
 			</h2>
 			<form
-				on:submit|preventDefault={addProperty}
+				onsubmit={addProperty}
 				class="space-y-4">
 				<input
 					bind:value={title}
@@ -208,14 +208,15 @@
 					placeholder="Total Units"
 					class="w-full border rounded-xl p-3" />
 				<div>
-					<label class="font-semibold">
+					<label for="new-images" class="font-semibold">
 						Upload Images (Max 6)
 					</label>
 					<input
+						id="new-images"
 						type="file"
 						accept="image/*"
 						multiple
-						on:change={(e) => {
+						onchange={(e) => {
 							const files = [...e.target.files];
 							if (files.length > 6) {
 								alert('Maximum 6 images allowed.');
@@ -332,12 +333,12 @@
 								<div class="flex gap-3 pt-3">
 									<button
 										class="flex-1 bg-rentora-purple text-white py-2 rounded-xl"
-										on:click={() => openEditor(property)}>
+										onclick={() => openEditor(property)}>
 										Edit
 									</button>
 									<button
 										class="flex-1 bg-red-600 text-white py-2 rounded-xl"
-										on:click={() => requestDelete(property.id)}
+										onclick={() => requestDelete(property.id)}
 										disabled={property.deleteRequested}>
 										{property.deleteRequested
 											? 'Delete Requested'
@@ -362,7 +363,7 @@
 							Edit Property
 						</h2>
 						<button
-							on:click={closeEditor}
+							onclick={closeEditor}
 							class="text-gray-500 hover:text-black text-2xl">
 							×
 						</button>
@@ -420,14 +421,15 @@
 							class="w-full border rounded-xl p-3"
 							placeholder="Total Units" />
 						<div>
-							<label class="font-semibold block mb-2">
+							<label for="edit-images" class="font-semibold block mb-2">
 								Add New Images (Maximum 6)
 							</label>
 							<input
+								id="edit-images"
 								type="file"
 								multiple
 								accept="image/*"
-								on:change={(e) => {
+								onchange={(e) => {
 									const files = [...e.target.files];
 									if (files.length > 6) {
 										alert('Maximum 6 images allowed.');
@@ -453,12 +455,12 @@
 						{/if}
 						<div class="flex gap-4 pt-6">
 							<button
-								on:click={saveEdit}
+								onclick={saveEdit}
 								class="flex-1 bg-rentora-purple text-white py-3 rounded-xl font-semibold">
 								Save Changes
 							</button>
 							<button
-								on:click={closeEditor}
+								onclick={closeEditor}
 								class="flex-1 border py-3 rounded-xl font-semibold">
 								Cancel
 							</button>

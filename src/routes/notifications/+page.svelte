@@ -1,11 +1,16 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { formatDateTime } from '$lib/utils/format.js';
+	import { handleApiError } from '$lib/utils/errors.js';
+	import SectionHeading from '$lib/components/SectionHeading.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 
-	let notifications = [];
-	let unread = 0;
-	let loading = true;
-	let error = '';
+	let notifications = $state([]);
+	let unread = $state(0);
+	let loading = $state(true);
+	let error = $state('');
 
 	async function loadNotifications() {
 		loading = true;
@@ -16,21 +21,35 @@
 			notifications = data.notifications;
 			unread = data.unread;
 		} catch (err) {
-			error = err.message;
+			error = handleApiError(err);
 		} finally {
 			loading = false;
 		}
 	}
 
+	// PATCH is the correct verb here: it only ever flips read/isRead on a
+	// single notification, never replaces the whole document.
 	async function markAsRead(id) {
 		try {
-			await api.put('/api/notifications', {
+			await api.patch('/api/notifications', {
 				notificationId: id
 			});
 
 			await loadNotifications();
 		} catch (err) {
-			alert(err.message);
+			alert(handleApiError(err));
+		}
+	}
+
+	async function dismissNotification(id) {
+		try {
+			await api.delete('/api/notifications/delete', {
+				notificationId: id
+			});
+
+			await loadNotifications();
+		} catch (err) {
+			alert(handleApiError(err));
 		}
 	}
 
@@ -53,23 +72,12 @@
 	</div>
 
 	{#if loading}
-
-		<div class="bg-white rounded-xl shadow p-8 text-center">
-			Loading notifications...
-		</div>
-
+		<LoadingSpinner message="Loading notifications..." />
 	{:else if error}
-
 		<p class="text-red-600">{error}</p>
-
 	{:else if notifications.length === 0}
-
-		<div class="bg-white rounded-xl shadow p-10 text-center text-gray-500">
-			No notifications available.
-		</div>
-
+		<EmptyState message="No notifications available." />
 	{:else}
-
 		<div class="space-y-4">
 			{#each notifications as notification}
 				<div class="bg-white rounded-xl shadow-sm border p-5 flex justify-between items-start">
@@ -83,26 +91,31 @@
 						</p>
 
 						<p class="text-xs text-gray-400 mt-2">
-							{new Date(notification.createdAt).toLocaleString()}
+							{formatDateTime(notification.createdAt)}
 						</p>
 					</div>
 
-					<div class="text-right">
+					<div class="text-right flex flex-col items-end gap-2">
 						{#if notification.read || notification.isRead}
 							<span class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700">
 								Read
 							</span>
 						{:else}
 							<button
-								on:click={() => markAsRead(notification.id)}
+								onclick={() => markAsRead(notification.id)}
 								class="px-3 py-2 bg-rentora-purple text-white rounded-lg text-sm hover:bg-rentora-purpleLight">
 								Mark as Read
 							</button>
 						{/if}
+
+						<button
+							onclick={() => dismissNotification(notification.id)}
+							class="text-xs text-gray-400 hover:text-red-600">
+							Dismiss
+						</button>
 					</div>
 				</div>
 			{/each}
 		</div>
-
 	{/if}
 </section>

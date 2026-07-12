@@ -22,7 +22,7 @@ export async function GET({ locals }) {
 				.where('ownerId', '==', ownerId)
 				.get(),
 
-			db.collection('requests')
+			db.collection('rentalRequests')
 				.where('ownerId', '==', ownerId)
 				.get(),
 
@@ -53,7 +53,7 @@ export async function GET({ locals }) {
 				(r) => r.status === 'Pending'
 			).length,
 			acceptedRequests: requests.filter(
-				(r) => r.status === 'Accepted'
+				(r) => r.status === 'Approved' || r.status === 'Accepted'
 			).length,
 			rejectedRequests: requests.filter(
 				(r) => r.status === 'Rejected'
@@ -73,10 +73,10 @@ export async function GET({ locals }) {
 				),
 			totalMaintenance: maintenance.length,
 			openMaintenance: maintenance.filter(
-				(m) => m.status !== 'Completed'
+				(m) => m.status !== 'Resolved'
 			).length,
 			completedMaintenance: maintenance.filter(
-				(m) => m.status === 'Completed'
+				(m) => m.status === 'Resolved'
 			).length
 		};
 

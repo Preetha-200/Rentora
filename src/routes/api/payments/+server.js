@@ -16,13 +16,14 @@ export async function GET({ locals }) {
 		const snapshot = await db
 			.collection('payments')
 			.where('tenantId', '==', locals.user.id)
-			.orderBy('createdAt', 'desc')
 			.get();
 
-		const payments = snapshot.docs.map((doc) => ({
-			id: doc.id,
-			...doc.data()
-		}));
+		const payments = snapshot.docs
+			.map((doc) => ({
+				id: doc.id,
+				...doc.data()
+			}))
+			.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
 		return json({
 			total: payments.length,

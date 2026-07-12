@@ -62,26 +62,28 @@ async function getOwnerComplaints(ownerId) {
 	const snapshot = await db
 		.collection('maintenance')
 		.where('ownerId', '==', ownerId)
-		.orderBy('createdAt', 'desc')
 		.get();
 
-	return snapshot.docs.map((doc) => ({
-		id: doc.id,
-		...doc.data()
-	}));
+	return snapshot.docs
+		.map((doc) => ({
+			id: doc.id,
+			...doc.data()
+		}))
+		.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 async function getTenantComplaints(tenantId) {
 	const snapshot = await db
 		.collection('maintenance')
 		.where('tenantId', '==', tenantId)
-		.orderBy('createdAt', 'desc')
 		.get();
 
-	return snapshot.docs.map((doc) => ({
-		id: doc.id,
-		...doc.data()
-	}));
+	return snapshot.docs
+		.map((doc) => ({
+			id: doc.id,
+			...doc.data()
+		}))
+		.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 export async function POST({ request, locals }) {

@@ -1,54 +1,44 @@
 <script>
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { formatCurrency } from '$lib/utils/format.js';
+	import { handleApiError } from '$lib/utils/errors.js';
+	import SectionHeading from '$lib/components/SectionHeading.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
+	import DashboardCard from '$lib/components/DashboardCard.svelte';
 
-	let loading = true;
-	let error = '';
+	let loading = $state(true);
+	let error = $state('');
 
-	let report = {
+	let report = $state({
 		totalUsers: 0,
 		totalOwners: 0,
 		totalTenants: 0,
 		totalProperties: 0,
 		approvedProperties: 0,
 		pendingProperties: 0,
-		deleteRequests: 0,
+		rejectedProperties: 0,
+		totalRequests: 0,
+		approvedRequests: 0,
+		rejectedRequests: 0,
+		pendingRequests: 0,
+		totalMaintenance: 0,
+		completedMaintenance: 0,
+		openMaintenance: 0,
+		totalPayments: 0,
+		paidPayments: 0,
+		pendingPayments: 0,
 		totalRevenue: 0
-	};
+	});
 
 	async function loadReports() {
 		loading = true;
 		error = '';
 
 		try {
-			const [
-				users,
-				properties,
-				pending,
-				deleteRequests,
-				payments
-			] = await Promise.all([
-				api.get('/api/admin/users'),
-				api.get('/api/properties'),
-				api.get('/api/admin/property-approval?status=Pending'),
-				api.get('/api/admin/property-approval?deleteRequests=true'),
-				api.get('/api/payments')
-			]);
-
-			report.totalUsers = users.length;
-			report.totalOwners = users.filter(u => u.role === 'owner').length;
-			report.totalTenants = users.filter(u => u.role === 'tenant').length;
-
-			report.totalProperties = properties.length;
-			report.approvedProperties = properties.filter(p => p.status === 'Approved').length;
-			report.pendingProperties = pending.length;
-			report.deleteRequests = deleteRequests.length;
-
-			report.totalRevenue = payments
-				.filter(p => p.status === 'Paid')
-				.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+			report = await api.get('/api/admin/reports');
 		} catch (err) {
-			error = err.message || 'Failed to load reports.';
+			error = handleApiError(err, 'Failed to load reports.');
 		} finally {
 			loading = false;
 		}
@@ -57,132 +47,79 @@
 	onMount(loadReports);
 </script>
 
-<h1 class="text-3xl font-bold text-rentora-dark mb-8">
-	System Reports
-</h1>
+<SectionHeading title="System Reports" subtitle="Platform-wide statistics across users, properties, requests, maintenance, and payments." />
 
 {#if loading}
-
-<div class="bg-white rounded-2xl shadow-sm p-10 text-center">
-	Loading reports...
-</div>
-
+	<LoadingSpinner message="Loading reports..." />
 {:else}
+	{#if error}
+		<div class="mb-6 rounded-xl bg-red-100 text-red-700 p-4">
+			{error}
+		</div>
+	{/if}
 
-{#if error}
-<div class="mb-6 rounded-xl bg-red-100 text-red-700 p-4">
-	{error}
-</div>
-{/if}
-
-<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Registered Users</p>
-		<p class="text-4xl font-bold text-rentora-purple mt-3">{report.totalUsers}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Property Owners</p>
-		<p class="text-4xl font-bold text-blue-600 mt-3">{report.totalOwners}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Tenants</p>
-		<p class="text-4xl font-bold text-indigo-600 mt-3">{report.totalTenants}</p>
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-		<p class="text-sm text-gray-500 uppercase">Revenue Collected</p>
-		<p class="text-4xl font-bold text-green-600 mt-3">₹{report.totalRevenue.toLocaleString()}</p>
-	</div>
-
-</div>
-
-<div class="grid lg:grid-cols-2 gap-8">
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-
-		<h2 class="text-xl font-bold mb-6">
-			Property Statistics
-		</h2>
-
-		<div class="space-y-5">
-
-			<div class="flex justify-between items-center">
-				<span>Total Properties</span>
-				<span class="font-bold">{report.totalProperties}</span>
+	<div class="space-y-10">
+		<div>
+			<h2 class="text-lg font-bold text-rentora-dark mb-4">Users</h2>
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<DashboardCard label="Total Users" value={report.totalUsers} />
+				<DashboardCard label="Total Owners" value={report.totalOwners} color="text-blue-600" />
+				<DashboardCard label="Total Tenants" value={report.totalTenants} color="text-indigo-600" />
 			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Approved Properties</span>
-				<span class="font-bold text-green-600">{report.approvedProperties}</span>
-			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Pending Approvals</span>
-				<span class="font-bold text-amber-600">{report.pendingProperties}</span>
-			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Delete Requests</span>
-				<span class="font-bold text-red-600">{report.deleteRequests}</span>
-			</div>
-
 		</div>
 
-	</div>
-
-	<div class="bg-white rounded-2xl border shadow-sm p-6">
-
-		<h2 class="text-xl font-bold mb-6">
-			User Statistics
-		</h2>
-
-		<div class="space-y-5">
-
-			<div class="flex justify-between items-center">
-				<span>Total Accounts</span>
-				<span class="font-bold">{report.totalUsers}</span>
+		<div>
+			<h2 class="text-lg font-bold text-rentora-dark mb-4">Properties</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+				<DashboardCard label="Total Properties" value={report.totalProperties} />
+				<DashboardCard label="Approved Properties" value={report.approvedProperties} color="text-green-600" />
+				<DashboardCard label="Pending Properties" value={report.pendingProperties} color="text-amber-600" />
+				<DashboardCard label="Rejected Properties" value={report.rejectedProperties} color="text-red-600" />
 			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Owners</span>
-				<span class="font-bold text-blue-600">{report.totalOwners}</span>
-			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Tenants</span>
-				<span class="font-bold text-indigo-600">{report.totalTenants}</span>
-			</div>
-
-			<div class="flex justify-between items-center">
-				<span>Collected Revenue</span>
-				<span class="font-bold text-green-600">₹{report.totalRevenue.toLocaleString()}</span>
-			</div>
-
 		</div>
 
+		<div>
+			<h2 class="text-lg font-bold text-rentora-dark mb-4">Rental Requests</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+				<DashboardCard label="Total Requests" value={report.totalRequests} />
+				<DashboardCard label="Approved Requests" value={report.approvedRequests} color="text-green-600" />
+				<DashboardCard label="Rejected Requests" value={report.rejectedRequests} color="text-red-600" />
+				<DashboardCard label="Pending Requests" value={report.pendingRequests} color="text-amber-600" />
+			</div>
+		</div>
+
+		<div>
+			<h2 class="text-lg font-bold text-rentora-dark mb-4">Maintenance</h2>
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+				<DashboardCard label="Total Maintenance Requests" value={report.totalMaintenance} />
+				<DashboardCard label="Completed" value={report.completedMaintenance} color="text-green-600" />
+				<DashboardCard label="Open" value={report.openMaintenance} color="text-amber-600" />
+			</div>
+		</div>
+
+		<div>
+			<h2 class="text-lg font-bold text-rentora-dark mb-4">Payments</h2>
+			<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+				<DashboardCard label="Total Payments" value={report.totalPayments} />
+				<DashboardCard label="Paid Payments" value={report.paidPayments} color="text-green-600" />
+				<DashboardCard label="Pending Payments" value={report.pendingPayments} color="text-amber-600" />
+				<DashboardCard label="Revenue Collected" value={formatCurrency(report.totalRevenue)} color="text-rentora-purple" />
+			</div>
+		</div>
 	</div>
 
-</div>
+	<div class="bg-white rounded-2xl border shadow-sm mt-10 p-6">
+		<h2 class="text-xl font-bold mb-4">System Summary</h2>
 
-<div class="bg-white rounded-2xl border shadow-sm mt-8 p-6">
-
-	<h2 class="text-xl font-bold mb-4">
-		System Summary
-	</h2>
-
-	<p class="text-gray-600 leading-7">
-		Rentora currently manages
-		<strong>{report.totalProperties}</strong> properties across
-		<strong>{report.totalOwners}</strong> owners and
-		<strong>{report.totalTenants}</strong> tenants. There are
-		<strong>{report.pendingProperties}</strong> pending approval requests,
-		<strong>{report.deleteRequests}</strong> deletion requests awaiting review,
-		and a total rent collection of
-		<strong>₹{report.totalRevenue.toLocaleString()}</strong>.
-	</p>
-
-</div>
+		<p class="text-gray-600 leading-7">
+			Rentora currently manages
+			<strong>{report.totalProperties}</strong> properties across
+			<strong>{report.totalOwners}</strong> owners and
+			<strong>{report.totalTenants}</strong> tenants. There are
+			<strong>{report.pendingProperties}</strong> properties awaiting approval and
+			<strong>{report.pendingRequests}</strong> rental requests awaiting a decision,
+			with a total rent collection of
+			<strong>{formatCurrency(report.totalRevenue)}</strong>.
+		</p>
+	</div>
 {/if}

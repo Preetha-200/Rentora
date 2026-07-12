@@ -84,7 +84,7 @@
 
 		{#if user}
 			<div class="flex items-center gap-4">
-				<button on:click={openNotifications} title="Notifications" class="relative w-11 h-11 rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center text-xl">
+				<button onclick={openNotifications} title="Notifications" class="relative w-11 h-11 rounded-full border border-gray-200 bg-white hover:bg-gray-50 transition flex items-center justify-center text-xl">
 					🔔
 					{#if unreadNotifications > 0}
 						<span class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-600 text-white text-[11px] font-bold flex items-center justify-center">
@@ -93,7 +93,7 @@
 					{/if}
 				</button>
 
-				<button on:click={toggleDrawer} title={user.name} class="w-11 h-11 rounded-full bg-rentora-purple text-white flex items-center justify-center text-lg font-bold hover:scale-105 transition">
+				<button onclick={toggleDrawer} title={user.name} class="w-11 h-11 rounded-full bg-rentora-purple text-white flex items-center justify-center text-lg font-bold hover:scale-105 transition">
 					{user.name.charAt(0).toUpperCase()}
 				</button>
 			</div>
@@ -107,7 +107,7 @@
 </nav>
 
 {#if drawerOpen}
-	<button class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" on:click={closeDrawer} aria-label="Close Menu" />
+	<button class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onclick={closeDrawer} aria-label="Close Menu"></button>
 
 	<aside class="fixed top-0 right-0 h-screen w-80 bg-white shadow-2xl z-50 flex flex-col">
 		<div class="bg-rentora-purple text-white p-8 flex flex-col items-center">
@@ -121,15 +121,15 @@
 		</div>
 
 		<div class="flex-1 p-6 space-y-2">
-			<button on:click={openDashboard} class="w-full flex items-center gap-3 px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
+			<button onclick={openDashboard} class="w-full flex items-center gap-3 px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
 				🏠 Dashboard
 			</button>
 
-			<button on:click={openProfile} class="w-full flex items-center gap-3 px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
+			<button onclick={openProfile} class="w-full flex items-center gap-3 px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
 				👤 My Profile
 			</button>
 
-			<button on:click={openNotifications} class="w-full flex items-center justify-between px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
+			<button onclick={openNotifications} class="w-full flex items-center justify-between px-5 py-4 rounded-xl hover:bg-gray-100 transition font-medium">
 				<div class="flex items-center gap-3">🔔 Notifications</div>
 				{#if unreadNotifications > 0}
 					<span class="px-2 py-1 rounded-full bg-red-600 text-white text-xs font-bold">{unreadNotifications}</span>
@@ -138,7 +138,7 @@
 		</div>
 
 		<div class="border-t p-6">
-			<button on:click={logout} class="w-full py-3 rounded-xl bg-rentora-dark text-white font-semibold hover:opacity-90 transition">
+			<button onclick={logout} class="w-full py-3 rounded-xl bg-rentora-dark text-white font-semibold hover:opacity-90 transition">
 				Logout
 			</button>
 		</div>
