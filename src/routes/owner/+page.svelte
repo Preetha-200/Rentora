@@ -1,329 +1,203 @@
 <script>
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { api } from '$lib/api';
-	let user = null;
-	let requests = [];
-	let issues = [];
-	let loadingData = true;
-	let error = '';
-	let requestStats = {
-		pending: 0,
-		approved: 0,
-		rejected: 0
-	};
-	let maintenanceStats = {
-		pending: 0,
-		inProgress: 0,
-		completed: 0
-	};
+	import { authUser } from '$lib/stores/auth.js';
+
+	let requests = $state([]);
+	let issues = $state([]);
+	let properties = $state([]);
+	let loading = $state(true);
+	let error = $state('');
+
+	let requestStats = $derived({
+		pending: requests.filter((r) => r.status === 'Pending').length,
+		approved: requests.filter((r) => r.status === 'Approved').length,
+		rejected: requests.filter((r) => r.status === 'Rejected').length
+	});
+
+	let maintenanceStats = $derived({
+		pending: issues.filter((i) => i.status === 'Pending').length,
+		inProgress: issues.filter((i) => i.status === 'In Progress').length,
+		fixed: issues.filter((i) => ['Fixed', 'Resolved'].includes(i.status)).length
+	});
+
 	async function loadDashboard() {
-		loadingData = true;
+		loading = true;
 		error = '';
 		try {
-			requests = await api.get('/api/rental-requests?owner=true');
-			const maintenance = await api.get('/api/maintenance');
-			issues = maintenance.complaints || [];
-			requestStats = {
-				pending: requests.filter(
-					(r) => r.status === 'Pending'
-				).length,
-				approved: requests.filter(
-					(r) =>
-						r.status === 'Approved' ||
-						r.status === 'Accepted'
-				).length,
-				rejected: requests.filter(
-					(r) =>
-						r.status === 'Rejected'
-				).length
-			};
-			maintenanceStats = {
-				pending: issues.filter(
-					(i) => i.status === 'Pending'
-				).length,
-				inProgress: issues.filter(
-					(i) => i.status === 'In Progress'
-				).length,
-				completed: issues.filter(
-					(i) =>
-						i.status === 'Completed' ||
-						i.status === 'Resolved'
-				).length
-			};
+			const [reqData, mainData, propData] = await Promise.allSettled([
+				api.get('/api/rental-requests?owner=true'),
+				api.get('/api/maintenance'),
+				api.get('/api/properties?mine=true')
+			]);
+
+			requests = reqData.status === 'fulfilled' ? (Array.isArray(reqData.value) ? reqData.value : []) : [];
+			issues = mainData.status === 'fulfilled' ? (mainData.value.complaints || mainData.value || []) : [];
+			properties = propData.status === 'fulfilled' ? (Array.isArray(propData.value) ? propData.value : []) : [];
 		} catch (err) {
-			error =
-				err.message ||
-				'Failed to load dashboard';
+			error = err.message;
 		} finally {
-			loadingData = false;
+			loading = false;
 		}
 	}
-	onMount(async () => {
-		const savedUser =
-			localStorage.getItem('rentora_user');
-		if (!savedUser) {
-			goto('/login');
-			return;
-		}
-		user = JSON.parse(savedUser);
-		await loadDashboard();
-	});
-	async function updateRequest(id, status) {
-		try {
-			await api.put('/api/requests/status', {
-				requestId: id,
-				status
-			});
-			await loadDashboard();
-		} catch (err) {
-			alert(err.message);
-		}
-	}
-	async function resolveTicket(id, status) {
-		try {
-			await api.post(
-				'/api/maintenance/update-status',
-				{
-					complaintId: id,
-					status
-				}
-			);
-			await loadDashboard();
-		} catch (err) {
-			alert(err.message);
-		}
-	}
-	function handleLogout() {
-		localStorage.removeItem(
-			'rentora_token'
-		);
-		localStorage.removeItem(
-			'rentora_user'
-		);
-		goto('/login');
-	}
+
+	onMount(loadDashboard);
 </script>
-{#if user}
-<main class="min-h-screen bg-slate-50 p-6 md:p-12">
-	<div class="max-w-7xl mx-auto space-y-8">
-		<div class="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-			<div>
-				<h1 class="text-3xl font-extrabold text-gray-900">
-					Landlord Control Room
-				</h1>
-				<p class="text-gray-500 mt-1">
-					Welcome back, {user.name}
-				</p>
-			</div>
-			<button
-				onclick={handleLogout}
-				class="mt-4 md:mt-0 bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2.5 rounded-xl font-semibold transition">
-				Sign Out
-			</button>
+
+<svelte:head>
+	<title>Owner Dashboard — Rentora</title>
+</svelte:head>
+
+<div class="max-w-7xl mx-auto animate-fade-in">
+	<!-- Header -->
+	<div class="mb-8">
+		<h1 class="text-3xl font-black text-rentora-dark">
+			Good day, {$authUser?.name?.split(' ')[0] || 'Owner'} 👋
+		</h1>
+		<p class="text-gray-500 mt-1">Here's an overview of your rental portfolio.</p>
+	</div>
+
+	{#if loading}
+		<div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+			{#each [1,2,3,4] as _}
+				<div class="skeleton h-32 rounded-2xl"></div>
+			{/each}
 		</div>
-		{#if loadingData}
-			<div class="bg-white rounded-2xl shadow-sm border p-12 text-center">
-				<p class="text-gray-500">
-					Loading dashboard...
-				</p>
-			</div>
-		{:else}
-			{#if error}
-				<div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4">
-					{error}
-				</div>
-			{/if}
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-				<div class="bg-white rounded-2xl shadow-sm border p-5">
-					<p class="text-sm text-gray-500">
-						Pending Applications
-					</p>
-					<p class="text-3xl font-bold text-amber-600 mt-2">
-						{requestStats.pending}
-					</p>
-				</div>
-				<div class="bg-white rounded-2xl shadow-sm border p-5">
-					<p class="text-sm text-gray-500">
-						Approved Applications
-					</p>
-					<p class="text-3xl font-bold text-green-600 mt-2">
-						{requestStats.approved}
-					</p>
-				</div>
-				<div class="bg-white rounded-2xl shadow-sm border p-5">
-					<p class="text-sm text-gray-500">
-						Pending Maintenance
-					</p>
-					<p class="text-3xl font-bold text-red-600 mt-2">
-						{maintenanceStats.pending}
-					</p>
-				</div>
-				<div class="bg-white rounded-2xl shadow-sm border p-5">
-					<p class="text-sm text-gray-500">
-						In Progress
-					</p>
-					<p class="text-3xl font-bold text-blue-600 mt-2">
-						{maintenanceStats.inProgress}
-					</p>
-				</div>
-				<div class="bg-white rounded-2xl shadow-sm border p-5">
-					<p class="text-sm text-gray-500">
-						Completed
-					</p>
-					<p class="text-3xl font-bold text-emerald-600 mt-2">
-						{maintenanceStats.completed}
-					</p>
-				</div>
-			</div>
-			<section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-				<h2 class="text-xl font-bold text-gray-800 mb-4">
-					Tenant Lease Applications
-				</h2>
-				{#if requests.length === 0}
-					<p class="text-gray-500">
-						No tenant applications have been received yet.
-					</p>
-				{:else}
-					<div class="overflow-x-auto">
-						<table class="w-full text-left">
-							<thead>
-								<tr class="border-b border-gray-100 text-sm font-semibold text-gray-400">
-									<th class="py-3">
-										Tenant
-									</th>
-									<th class="py-3">
-										Property
-									</th>
-									<th class="py-3">
-										Status
-									</th>
-									<th class="py-3 text-right">
-										Actions
-									</th>
-								</tr>
-							</thead>
-							<tbody class="divide-y divide-gray-50 text-sm">
-                            								{#each requests as req}
-									<tr>
-										<td class="py-4 font-semibold">
-											{req.tenantName}
-										</td>
-										<td class="py-4">
-											{req.propertyTitle || req.propertyId}
-										</td>
-										<td class="py-4">
-											<span
-												class={`px-3 py-1 rounded-full text-xs font-semibold ${
-													req.status === 'Approved' || req.status === 'Accepted'
-														? 'bg-green-100 text-green-700'
-														: req.status === 'Rejected'
-															? 'bg-red-100 text-red-700'
-															: 'bg-amber-100 text-amber-700'
-												}`}>
-												{req.status}
-											</span>
-										</td>
-										<td class="py-4 text-right">
-											{#if req.status === 'Pending'}
-												<div class="flex justify-end gap-2">
-													<button
-														onclick={() =>
-															updateRequest(
-																req.id,
-																'Approved'
-															)}
-														class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700">
-														Approve
-													</button>
-													<button
-														onclick={() =>
-															updateRequest(
-																req.id,
-																'Rejected'
-															)}
-														class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
-														Reject
-													</button>
-												</div>
-											{:else}
-												<span class="text-gray-400">
-													Completed
-												</span>
-											{/if}
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
+	{:else if error}
+		<div class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8 flex items-center gap-3">
+			<span class="material-symbols-outlined text-red-500 text-xl">error</span>
+			<p class="text-red-700">{error}</p>
+		</div>
+	{:else}
+		<!-- Stats Cards -->
+		<div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+			{#each [
+				{ label: 'Total Properties', value: properties.length, icon: 'apartment', color: 'from-rentora-dark to-rentora-blue', href: '/owner/properties' },
+				{ label: 'Pending Requests', value: requestStats.pending, icon: 'inbox', color: 'from-amber-500 to-orange-500', href: '/owner/requests' },
+				{ label: 'Active Rentals', value: requestStats.approved, icon: 'home', color: 'from-emerald-500 to-green-600', href: '/owner/requests' },
+				{ label: 'Maintenance Pending', value: maintenanceStats.pending, icon: 'build', color: 'from-rentora-purple to-rentora-purpleLight', href: '/owner/maintenance' }
+			] as stat}
+				<a
+					href={stat.href}
+					class="stat-card group overflow-hidden relative cursor-pointer hover:scale-[1.02] active:scale-[0.98]">
+					<div class="absolute top-0 right-0 w-24 h-24 rounded-full bg-gradient-to-br {stat.color} opacity-10 translate-x-8 -translate-y-8 group-hover:opacity-20 transition-opacity"></div>
+					<div class="w-12 h-12 rounded-xl bg-gradient-to-br {stat.color} flex items-center justify-center mb-4 shadow-lg">
+						<span class="material-symbols-outlined text-white text-xl filled">{stat.icon}</span>
 					</div>
-				{/if}
-			</section>
-			<section class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-				<h2 class="text-xl font-bold text-gray-800 mb-4">
-					Maintenance Requests
-				</h2>
-				{#if issues.length === 0}
-					<p class="text-gray-500">
-						No maintenance complaints found.
-					</p>
-				{:else}
-					<div class="space-y-4">
-						{#each issues as issue}
-							<div class="border rounded-xl p-5 flex flex-col lg:flex-row justify-between gap-5">
+					<div class="text-3xl font-black text-rentora-dark">{stat.value}</div>
+					<div class="text-sm font-medium text-gray-500 mt-1">{stat.label}</div>
+				</a>
+			{/each}
+		</div>
+
+		<!-- Two-column layout -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<!-- Recent Requests -->
+			<div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+				<div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+					<div>
+						<h2 class="text-lg font-bold text-rentora-dark">Recent Requests</h2>
+						<p class="text-xs text-gray-400 mt-0.5">Incoming rental applications</p>
+					</div>
+					<a href="/owner/requests" class="text-sm font-semibold text-rentora-purple hover:underline flex items-center gap-1">
+						View all
+						<span class="material-symbols-outlined text-base">arrow_forward</span>
+					</a>
+				</div>
+				<div class="divide-y divide-gray-50">
+					{#if requests.length === 0}
+						<div class="py-10 text-center text-gray-400">
+							<span class="material-symbols-outlined text-4xl block mb-2">inbox</span>
+							No requests yet
+						</div>
+					{:else}
+						{#each requests.slice(0, 5) as req}
+							<div class="px-6 py-4 flex justify-between items-center">
 								<div>
-									<h3 class="font-semibold text-lg">
-										{issue.propertyTitle}
-									</h3>
-									<p class="text-gray-600 mt-2">
-										{issue.complaint}
-									</p>
-									<p class="text-sm text-gray-400 mt-2">
-										Status:
-										<strong>{issue.status}</strong>
-									</p>
+									<p class="font-semibold text-sm text-rentora-dark line-clamp-1">{req.propertyTitle}</p>
+									<p class="text-xs text-gray-400 mt-0.5">{req.tenantName || req.tenantId}</p>
 								</div>
-								<div class="flex flex-wrap gap-2 h-fit">
-									{#if issue.status !== 'Pending'}
-										<button
-											onclick={() =>
-												resolveTicket(
-													issue.id,
-													'Pending'
-												)}
-											class="px-4 py-2 rounded-lg bg-amber-600 text-white">
-											Mark Pending
-										</button>
-									{/if}
-									{#if issue.status !== 'In Progress'}
-										<button
-											onclick={() =>
-												resolveTicket(
-													issue.id,
-													'In Progress'
-												)}
-											class="px-4 py-2 rounded-lg bg-blue-600 text-white">
-											In Progress
-										</button>
-									{/if}
-									{#if issue.status !== 'Completed'}
-										<button
-											onclick={() =>
-												resolveTicket(
-													issue.id,
-													'Completed'
-												)}
-											class="px-4 py-2 rounded-lg bg-green-600 text-white">
-											Complete
-										</button>
-									{/if}
-								</div>
+								<span class="text-xs font-bold px-2.5 py-1 rounded-full
+									{req.status === 'Approved' ? 'bg-green-100 text-green-700' :
+									 req.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+									 'bg-amber-100 text-amber-700'}">
+									{req.status}
+								</span>
 							</div>
 						{/each}
+					{/if}
+				</div>
+			</div>
+
+			<!-- Maintenance Issues -->
+			<div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden">
+				<div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+					<div>
+						<h2 class="text-lg font-bold text-rentora-dark">Maintenance Issues</h2>
+						<p class="text-xs text-gray-400 mt-0.5">Tenant-reported problems</p>
 					</div>
-				{/if}
-			</section>
+					<a href="/owner/maintenance" class="text-sm font-semibold text-rentora-purple hover:underline flex items-center gap-1">
+						View all
+						<span class="material-symbols-outlined text-base">arrow_forward</span>
+					</a>
+				</div>
+				<div class="divide-y divide-gray-50">
+					{#if issues.length === 0}
+						<div class="py-10 text-center text-gray-400">
+							<span class="material-symbols-outlined text-4xl block mb-2">build</span>
+							No maintenance issues
+						</div>
+					{:else}
+						{#each issues.slice(0, 5) as issue}
+							<div class="px-6 py-4 flex justify-between items-center">
+								<div>
+									<p class="font-semibold text-sm text-rentora-dark line-clamp-1">{issue.title || issue.issue || 'Issue'}</p>
+									<p class="text-xs text-gray-400 mt-0.5">{issue.propertyTitle || ''}</p>
+								</div>
+								<span class="text-xs font-bold px-2.5 py-1 rounded-full
+									{issue.status === 'Resolved' ? 'bg-green-100 text-green-700' :
+									 issue.status === 'Fixed' ? 'bg-blue-100 text-blue-700' :
+									 issue.status === 'In Progress' ? 'bg-purple-100 text-purple-700' :
+									 'bg-amber-100 text-amber-700'}">
+									{issue.status}
+								</span>
+							</div>
+						{/each}
+					{/if}
+				</div>
+			</div>
+		</div>
+
+		<!-- Properties summary -->
+		{#if properties.length > 0}
+			<div class="bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden mt-8">
+				<div class="px-6 py-5 border-b border-gray-50 flex justify-between items-center">
+					<div>
+						<h2 class="text-lg font-bold text-rentora-dark">My Properties</h2>
+						<p class="text-xs text-gray-400 mt-0.5">{properties.length} total listing{properties.length !== 1 ? 's' : ''}</p>
+					</div>
+					<a href="/owner/properties" class="text-sm font-semibold text-rentora-purple hover:underline flex items-center gap-1">
+						Manage
+						<span class="material-symbols-outlined text-base">arrow_forward</span>
+					</a>
+				</div>
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+					{#each properties.slice(0, 3) as prop}
+						<div class="flex items-center gap-4 p-4 rounded-xl bg-rentora-grayLight border border-gray-100">
+							<div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rentora-dark to-rentora-blue flex items-center justify-center shrink-0">
+								<span class="material-symbols-outlined text-white filled">apartment</span>
+							</div>
+							<div class="min-w-0">
+								<p class="font-semibold text-sm text-rentora-dark truncate">{prop.title}</p>
+								<p class="text-xs text-gray-400 truncate">{prop.city}</p>
+								<span class="text-xs font-bold {prop.approvalStatus === 'Approved' ? 'text-green-600' : prop.approvalStatus === 'Rejected' ? 'text-red-500' : 'text-amber-500'}">
+									{prop.approvalStatus || prop.status || 'Pending'}
+								</span>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
 		{/if}
-	</div>
-</main>
-{/if}
+	{/if}
+</div>
