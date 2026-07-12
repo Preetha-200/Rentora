@@ -1,64 +1,274 @@
 <script>
-  import { mockMaintenance } from '$lib/mockData.js';
+	import { onMount } from 'svelte';
+	import { api } from '$lib/api';
 
-  let issues = $state([...mockMaintenance]);
-  let issueDescription = $state('');
-  let selectedPriority = $state('Low');
+	let issues = $state([]);
+	let properties = $state([]);
 
-  function fileRequest(e) {
-    e.preventDefault();
-    const newIssue = {
-      id: `maint-${Date.now()}`,
-      propertyName: 'Occupied Rental Unit',
-      issue: issueDescription,
-      status: 'Submitted',
-      priority: selectedPriority
-    };
-    issues = [newIssue, ...issues];
-    issueDescription = '';
-    selectedPriority = 'Low';
-  }
+	let loading = $state(true);
+	let submitting = $state(false);
+
+	let error = $state('');
+	let success = $state('');
+
+	let selectedProperty = $state('');
+	let issueDescription = $state('');
+	let selectedPriority = $state('Low');
+
+	async function loadProperties() {
+		try {
+			properties = await api.property.getAll();
+		} catch (err) {
+			error = err.message;
+		}
+	}
+
+	async function loadIssues() {
+		try {
+			const response = await api.get('/api/maintenance');
+			issues = response.complaints || [];
+		} catch (err) {
+			error = err.message;
+		}
+	}
+
+	async function initializePage() {
+		loading = true;
+		error = '';
+
+		try {
+			await Promise.all([
+				loadProperties(),
+				loadIssues()
+			]);
+		} finally {
+			loading = false;
+		}
+	}
+
+	onMount(initializePage);
+
+	async function fileRequest() {
+		error = '';
+		success = '';
+
+		if (!selectedProperty) {
+			error = 'Please select a property.';
+			return;
+		}
+
+		if (!issueDescription.trim()) {
+			error = 'Please describe the issue.';
+			return;
+		}
+
+		submitting = true;
+
+		try {
+			await api.post('/api/maintenance', {
+				propertyId: selectedProperty,
+				complaint: issueDescription.trim(),
+				priority: selectedPriority
+			});
+
+			success = 'Maintenance request submitted successfully.';
+
+			selectedProperty = '';
+			issueDescription = '';
+			selectedPriority = 'Low';
+
+			await loadIssues();
+		} catch (err) {
+			error = err.message;
+		} finally {
+			submitting = false;
+		}
+	}
+
+	async function resolveIssue(id) {
+		try {
+			await api.post('/api/maintenance/update-status', {
+				complaintId: id,
+				status: 'Resolved'
+			});
+			await loadIssues();
+		} catch (err) {
+			error = err.message;
+		}
+	}
+
+	function activeIssues() {
+		return issues.filter(
+			(issue) => issue.status !== 'Resolved'
+		);
+	}
 </script>
 
-<h1 class="text-3xl font-bold text-rentora-dark mb-6">Maintenance Portal</h1>
+<section>
+	<h1 class="text-3xl font-bold text-rentora-dark mb-6">
+		Maintenance Portal
+	</h1>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-    <h2 class="text-xl font-bold mb-4">File a Work Order</h2>
-    <form onsubmit={fileRequest} class="space-y-4">
-      <div>
-        <label for="issue" class="block text-sm font-medium text-gray-700 mb-1">Describe the Issue</label>
-        <textarea id="issue" bind:value={issueDescription} required class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple resize-none h-24" placeholder="Plumbing leak, broken lock, etc."></textarea>
-      </div>
-      <div>
-        <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority Urgency</label>
-        <select id="priority" bind:value={selectedPriority} class="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple bg-white">
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-        </select>
-      </div>
-      <button type="submit" class="w-full py-2.5 bg-rentora-purple text-white font-semibold rounded-xl hover:bg-rentora-purpleLight transition duration-200">
-        Submit Ticket
-      </button>
-    </form>
-  </div>
+	{#if loading}
 
-  <div class="lg:col-span-2 space-y-4">
-    <h2 class="text-xl font-bold text-rentora-dark">Ticket History</h2>
-    {#each issues as issue}
-      <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
-        <div>
-          <span class="text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider {issue.priority === 'High' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700'}">
-            {issue.priority} Priority
-          </span>
-          <h3 class="font-bold text-base text-rentora-dark mt-2">{issue.issue}</h3>
-          <p class="text-xs text-gray-400 mt-0.5">{issue.propertyName}</p>
-        </div>
-        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-50 text-rentora-purple">
-          {issue.status}
-        </span>
-      </div>
-    {/each}
-  </div>
-</div>
+		<div class="bg-white rounded-2xl shadow-sm p-8 text-center">
+			Loading...
+		</div>
+
+	{:else}
+
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+			<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+
+				<h2 class="text-xl font-bold mb-4">
+					File a Work Order
+				</h2>
+
+				{#if error}
+					<div class="mb-4 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-red-600 text-sm">
+						{error}
+					</div>
+				{/if}
+
+				{#if success}
+					<div class="mb-4 rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-green-700 text-sm">
+						{success}
+					</div>
+				{/if}
+
+				<form on:submit|preventDefault={fileRequest} class="space-y-4">
+
+					<div>
+						<label class="block text-sm font-medium mb-1">
+							Property
+						</label>
+
+						<select
+							bind:value={selectedProperty}
+							required
+							class="w-full px-3 py-2 border rounded-xl">
+
+							<option value="">
+								Select Property
+							</option>
+
+							{#each properties as property}
+								<option value={property.id}>
+									{property.title}
+								</option>
+							{/each}
+
+						</select>
+					</div>
+
+					<div>
+						<label class="block text-sm font-medium mb-1">
+							Describe the Issue
+						</label>
+
+						<textarea
+							bind:value={issueDescription}
+							required
+							class="w-full px-3 py-2 border rounded-xl h-24 resize-none"
+							placeholder="Plumbing leak, broken lock etc.">
+						</textarea>
+					</div>
+
+					<div>
+						<label class="block text-sm font-medium mb-1">
+							Priority
+						</label>
+
+						<select
+							bind:value={selectedPriority}
+							class="w-full px-3 py-2 border rounded-xl">
+
+							<option value="Low">
+								Low
+							</option>
+
+							<option value="Medium">
+								Medium
+							</option>
+
+							<option value="High">
+								High
+							</option>
+
+						</select>
+					</div>
+
+					<button
+						type="submit"
+						disabled={submitting}
+						class="w-full py-2.5 bg-rentora-purple text-white rounded-xl disabled:opacity-50">
+
+						{submitting ? 'Submitting...' : 'Submit Ticket'}
+
+					</button>
+
+				</form>
+
+			</div>
+
+			<div class="lg:col-span-2 space-y-4">
+
+				<h2 class="text-xl font-bold">
+					Active Maintenance Requests
+				</h2>
+
+				{#each activeIssues() as issue}
+
+					<div class="bg-white p-5 rounded-2xl shadow-sm border flex justify-between items-center">
+
+						<div>
+
+							<span class="text-xs font-bold px-2 py-1 rounded bg-gray-100">
+								{issue.priority || 'Low'}
+							</span>
+
+							<h3 class="font-bold mt-2">
+								{issue.complaint}
+							</h3>
+
+							<p class="text-xs text-gray-500">
+								{issue.propertyTitle}
+							</p>
+
+							<p class="text-xs text-gray-500 mt-1">
+								Status :
+								<span class="font-semibold text-rentora-purple">
+									{issue.status}
+								</span>
+							</p>
+
+						</div>
+
+						<div>
+
+							{#if issue.status === 'Pending'}
+
+								<span class="px-3 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+									Waiting for Owner
+								</span>
+
+							{:else if issue.status === 'Checking'}
+
+								<button
+									on:click={() => resolveIssue(issue.id)}
+									class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+									Resolve
+								</button>
+							{/if}
+						</div>
+					</div>
+				{:else}
+					<div class="bg-white rounded-2xl shadow-sm p-8 text-center text-gray-500">
+						No maintenance requests found.
+					</div>
+				{/each}
+			</div>
+		</div>
+	{/if}
+</section>

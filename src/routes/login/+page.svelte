@@ -105,9 +105,15 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
-						Password
-					</label>
+					<div class="flex items-center justify-between mb-1">
+						<label class="block text-sm font-medium text-gray-700">
+							Password
+						</label>
+
+						<a href="/forgot-password" class="text-xs font-semibold text-rentora-purple hover:underline">
+							Forgot password?
+						</a>
+					</div>
 
 					<div class="relative">
 						<input
@@ -121,7 +127,11 @@
 							type="button"
 							class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
 							on:click={() => (showPassword = !showPassword)}>
-							{showPassword ? '🙈' : '👁️'}
+							{#if showPassword}
+								<input type="checkbox" checked class="w-4 h-4 accent-indigo-900 rounded">
+							{:else}
+								<input type="checkbox" class="w-4 h-4 rounded">
+							{/if}
 						</button>
 					</div>
 				</div>
