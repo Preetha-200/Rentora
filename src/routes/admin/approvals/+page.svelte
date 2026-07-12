@@ -38,7 +38,7 @@
 	async function approveProperty(id) {
 		processingId = id;
 		try {
-			await api.patch(`/api/admin/property-approval`, { propertyId: id, action: 'approve' });
+			await api.put(`/api/admin/property-approval`, { propertyId: id, action: 'approve' });
 			successMsg = 'Property approved successfully!';
 			await loadData();
 			setTimeout(() => (successMsg = ''), 3000);
@@ -56,7 +56,7 @@
 		}
 		processingId = id;
 		try {
-			await api.patch(`/api/admin/property-approval`, {
+			await api.put(`/api/admin/property-approval`, {
 				propertyId: id,
 				action: 'reject',
 				reason: rejectionReason
@@ -76,7 +76,10 @@
 	async function approveDelete(id) {
 		processingId = id;
 		try {
-			await api.delete(`/api/admin/property-approval`, { propertyId: id });
+			await api.put('/api/admin/property-approval', {
+				propertyId: id,
+				action: 'approveDelete'
+			});
 			successMsg = 'Property deletion approved.';
 			await loadData();
 			setTimeout(() => (successMsg = ''), 3000);
