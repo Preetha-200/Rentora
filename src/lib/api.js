@@ -1,4 +1,34 @@
+import { auth } from './firebase';
+
 const API_BASE = '';
+
+// Firebase's client SDK auto-refreshes the underlying token roughly every
+// hour, but only once `auth.currentUser` exists — right after a hard page
+// reload there's a brief window where auth state is still restoring from
+// storage. `authReady` resolves the first time Firebase reports auth state,
+// so every request waits for that instead of racing it.
+let resolveAuthReady;
+const authReady = new Promise((resolve) => {
+	resolveAuthReady = resolve;
+});
+auth.onAuthStateChanged(() => resolveAuthReady());
+
+async function getFreshToken() {
+	await authReady;
+
+	if (!auth.currentUser) return null;
+
+	// getIdToken() (without force-refresh) returns the cached token if it
+	// still has life left, and transparently fetches a new one from Firebase
+	// if it's expired or close to expiring — this is what actually fixes
+	// "auth/id-token-expired", instead of relying on a token string that was
+	// written to localStorage once at login and never touched again.
+	try {
+		return await auth.currentUser.getIdToken();
+	} catch {
+		return null;
+	}
+}
 
 async function handleResponse(res) {
 	if (!res.ok) {
@@ -8,11 +38,8 @@ async function handleResponse(res) {
 	return res.json();
 }
 
-function getHeaders(hasBody = true) {
-	const token =
-		typeof localStorage !== 'undefined'
-			? localStorage.getItem('token')
-			: null;
+async function getHeaders(hasBody = true) {
+	const token = await getFreshToken();
 
 	const headers = {
 		...(token && { Authorization: `Bearer ${token}` })
@@ -28,7 +55,7 @@ function getHeaders(hasBody = true) {
 const api = {
 	get: async (url) => {
 		const res = await fetch(`${API_BASE}${url}`, {
-			headers: getHeaders(false)
+			headers: await getHeaders(false)
 		});
 		return handleResponse(res);
 	},
@@ -36,7 +63,7 @@ const api = {
 	post: async (url, data) => {
 		const res = await fetch(`${API_BASE}${url}`, {
 			method: 'POST',
-			headers: getHeaders(true),
+			headers: await getHeaders(true),
 			body: JSON.stringify(data)
 		});
 		return handleResponse(res);
@@ -45,25 +72,32 @@ const api = {
 	put: async (url, data) => {
 		const res = await fetch(`${API_BASE}${url}`, {
 			method: 'PUT',
-			headers: getHeaders(true),
+			headers: await getHeaders(true),
 			body: JSON.stringify(data)
 		});
 		return handleResponse(res);
 	},
 
-	delete: async (url) => {
+	patch: async (url, data) => {
+		const res = await fetch(`${API_BASE}${url}`, {
+			method: 'PATCH',
+			headers: await getHeaders(true),
+			body: JSON.stringify(data)
+		});
+		return handleResponse(res);
+	},
+
+	delete: async (url, data) => {
 		const res = await fetch(`${API_BASE}${url}`, {
 			method: 'DELETE',
-			headers: getHeaders(false)
+			headers: await getHeaders(!!data),
+			...(data && { body: JSON.stringify(data) })
 		});
 		return handleResponse(res);
 	},
 
 	postFormData: async (url, formData) => {
-		const token =
-			typeof localStorage !== 'undefined'
-				? localStorage.getItem('token')
-				: null;
+		const token = await getFreshToken();
 
 		const res = await fetch(`${API_BASE}${url}`, {
 			method: 'POST',
@@ -75,10 +109,7 @@ const api = {
 	},
 
 	putFormData: async (url, formData) => {
-		const token =
-			typeof localStorage !== 'undefined'
-				? localStorage.getItem('token')
-				: null;
+		const token = await getFreshToken();
 
 		const res = await fetch(`${API_BASE}${url}`, {
 			method: 'PUT',

@@ -61,7 +61,7 @@
 	</div>
 
 	<button
-		on:click={logout}
+		onclick={logout}
 		class="w-full bg-rentora-purple hover:bg-rentora-purpleLight py-3 px-4 rounded-xl text-sm font-semibold transition duration-200 tracking-wide shadow-md shadow-rentora-purple/20">
 
 		Logout

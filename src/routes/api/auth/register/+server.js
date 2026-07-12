@@ -11,7 +11,7 @@ export async function POST({ request }) {
 			uid: decoded.uid,
 			name,
 			email,
-			phone,
+			phone: phone || '',
 			role: role || 'tenant',
 			createdAt: new Date()
 		};

@@ -32,8 +32,8 @@ if (!admin.apps.length) {
 	admin.initializeApp({
 		credential,
 		storageBucket:
-			process.env.FIREBASE_STORAGE_BUCKET ||
-			'rentalmanagement-15ed5.firebasestorage.app'
+            process.env.FIREBASE_STORAGE_BUCKET ||
+            'rentalmanagement-15ed5.firebasestorage.app'
 	});
 }
 

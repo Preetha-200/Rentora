@@ -1,60 +1,62 @@
 <script>
-	import { mockProperties } from '$lib/mockData.js';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { api } from '$lib/api';
+
+	let properties = $state([]);
+	let loading = $state(true);
+	let error = $state('');
 
 	let searchQuery = $state('');
 	let selectedType = $state('All');
 	let selectedBHK = $state('All');
 	let maxPrice = $state('');
 
-	const user =
-		typeof window !== 'undefined'
-			? JSON.parse(localStorage.getItem('rentora_user') || 'null')
-			: null;
+	const user = typeof window !== 'undefined'
+		? JSON.parse(localStorage.getItem('rentora_user') || 'null')
+		: null;
 
-	const propertyTypes = ['All', ...new Set(mockProperties.map((p) => p.type))];
+	let propertyTypes = $state(['All']);
+
+	async function loadProperties() {
+		loading = true;
+		error = '';
+
+		try {
+			properties = await api.get('/api/properties?status=Approved');
+			propertyTypes = ['All', ...new Set(properties.map((p) => p.type).filter(Boolean))];
+		} catch (err) {
+			error = err.message || 'Failed to load properties.';
+		} finally {
+			loading = false;
+		}
+	}
+
+	onMount(loadProperties);
 
 	let filteredProperties = $derived(
-		mockProperties.filter((property) => {
-			if (property.status !== 'Approved') return false;
-
+		properties.filter((property) => {
 			const matchesSearch =
-				property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				property.location.toLowerCase().includes(searchQuery.toLowerCase());
+				!searchQuery ||
+				property.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				property.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				property.city?.toLowerCase().includes(searchQuery.toLowerCase());
 
 			const matchesType =
 				selectedType === 'All' || property.type === selectedType;
 
 			const matchesBHK =
-				selectedBHK === 'All' || property.bhk === Number(selectedBHK);
+				selectedBHK === 'All' || Number(property.bedrooms) === Number(selectedBHK);
 
 			const matchesPrice =
-				!maxPrice || property.price <= Number(maxPrice);
+				!maxPrice || Number(property.rent) <= Number(maxPrice);
 
-			return (
-				matchesSearch &&
-				matchesType &&
-				matchesBHK &&
-				matchesPrice
-			);
+			return matchesSearch && matchesType && matchesBHK && matchesPrice;
 		})
 	);
 
-	function getViewLink() {
-		if (!user) return '/login';
-
-		switch (user.role) {
-			case 'tenant':
-				return '/tenant';
-
-			case 'owner':
-				return '/owner';
-
-			case 'admin':
-				return '/admin';
-
-			default:
-				return '/';
-		}
+	function viewProperty(id) {
+		goto(`/properties/${id}`);
 	}
 </script>
 
@@ -156,87 +158,101 @@
 
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-			{#each filteredProperties as property (property.id)}
+			{#if loading}
 
-				<div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col justify-between">
+				<div class="col-span-full bg-white rounded-2xl shadow-sm p-10 text-center">
+					Loading properties...
+				</div>
 
-					<div class="relative">
-						<img
-							src={property.image}
-							alt={property.title}
-							class="w-full h-56 object-cover" />
+			{:else if error}
 
-						<span class="absolute top-4 left-4 text-[10px] font-bold px-2.5 py-1 rounded-md bg-white/90 text-rentora-dark shadow-sm uppercase tracking-wider">
-							{property.type}
-						</span>
-					</div>
-
-					<div class="p-6 flex-1 flex flex-col justify-between">
-
-						<div>
-
-							<h3 class="text-xl font-bold text-rentora-dark line-clamp-1">
-								{property.title}
-							</h3>
-
-							<p class="text-gray-400 text-sm mt-1">
-								{property.location}
-							</p>
-
-							<div class="flex items-center space-x-2 mt-3 text-xs font-semibold text-slate-500">
-								<span class="bg-slate-100 px-2 py-0.5 rounded">
-									{property.bhk} BHK
-								</span>
-							</div>
-
-							<div class="flex flex-wrap gap-1 mt-4">
-								{#each property.amenities as amenity}
-									<span class="text-[10px] bg-purple-50 text-rentora-purple font-bold px-2 py-0.5 rounded-md">
-										{amenity}
-									</span>
-								{/each}
-							</div>
-
-						</div>
-
-						<div class="mt-6 pt-6 border-t border-gray-50 flex justify-between items-center">
-
-							<div>
-								<span class="text-2xl font-extrabold text-rentora-dark">
-									₹{property.price.toLocaleString('en-IN')}
-								</span>
-
-								<span class="text-gray-400 text-xs font-medium">
-									/ mo
-								</span>
-							</div>
-
-							<a
-								href={getViewLink()}
-								class="bg-rentora-dark text-white text-xs px-4 py-2.5 rounded-xl font-semibold hover:bg-rentora-purple transition duration-200">
-
-								View Listing
-
-							</a>
-
-						</div>
-
-					</div>
-
+				<div class="col-span-full bg-red-100 text-red-700 rounded-2xl p-6">
+					{error}
 				</div>
 
 			{:else}
 
-				<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 p-8">
+				{#each filteredProperties as property (property.id)}
 
-					<p class="text-gray-400 text-base">
-						No rental properties meet your current parameters. Reset your
-						search criteria inputs.
-					</p>
+					<div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition duration-300 flex flex-col justify-between">
 
-				</div>
+						<div class="relative">
+							<img src={property.images?.[0]} alt={property.title} class="w-full h-56 object-cover">
 
-			{/each}
+							<span class="absolute top-4 left-4 text-[10px] font-bold px-2.5 py-1 rounded-md bg-white/90 text-rentora-dark shadow-sm uppercase tracking-wider">
+								{property.type}
+							</span>
+						</div>
+
+						<div class="p-6 flex-1 flex flex-col justify-between">
+
+							<div>
+
+								<h3 class="text-xl font-bold text-rentora-dark line-clamp-1">
+									{property.title}
+								</h3>
+
+								<p class="text-gray-400 text-sm mt-1">
+									{property.address}, {property.city}
+								</p>
+
+								<div class="flex items-center gap-2 mt-3 text-xs font-semibold text-slate-500">
+									<span class="bg-slate-100 px-2 py-0.5 rounded">
+										{property.bedrooms} BHK
+									</span>
+
+									<span class="bg-slate-100 px-2 py-0.5 rounded">
+										{property.bathrooms} Bath
+									</span>
+								</div>
+
+								{#if property.amenities?.length}
+
+									<div class="flex flex-wrap gap-1 mt-4">
+										{#each property.amenities as amenity}
+											<span class="text-[10px] bg-purple-50 text-rentora-purple font-bold px-2 py-0.5 rounded-md">
+												{amenity}
+											</span>
+										{/each}
+									</div>
+
+								{/if}
+
+							</div>
+
+							<div class="mt-6 pt-6 border-t border-gray-50 flex justify-between items-center">
+
+								<div>
+									<span class="text-2xl font-extrabold text-rentora-dark">
+										₹{Number(property.rent).toLocaleString('en-IN')}
+									</span>
+
+									<span class="text-gray-400 text-xs font-medium">
+										/ mo
+									</span>
+								</div>
+
+								<button onclick={() => viewProperty(property.id)} class="bg-rentora-dark text-white text-xs px-4 py-2.5 rounded-xl font-semibold hover:bg-rentora-purple transition">
+									View Details
+								</button>
+
+							</div>
+
+						</div>
+
+					</div>
+
+				{:else}
+
+					<div class="col-span-full text-center py-16 bg-white rounded-2xl border border-dashed border-gray-200 p-8">
+						<p class="text-gray-400 text-base">
+							No rental properties match your search.
+						</p>
+					</div>
+
+				{/each}
+
+			{/if}
 
 		</div>
 	</div>

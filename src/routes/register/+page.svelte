@@ -6,9 +6,10 @@
 
 	let name = $state('');
 	let email = $state('');
-	let password = $state('');
 	let phone = $state('');
 	let selectedRole = $state('tenant');
+	let password = $state('');
+	let confirmPassword = $state('');
 
 	let loading = $state(false);
 	let error = $state('');
@@ -21,6 +22,12 @@
 
 		error = '';
 		success = '';
+
+		if (password !== confirmPassword) {
+			error = 'Passwords do not match.';
+			return;
+		}
+
 		loading = true;
 
 		try {
@@ -38,8 +45,6 @@
 			const token = await credential.user.getIdToken();
 
 			localStorage.setItem('token', token);
-			console.log('Stored token:', localStorage.getItem('token'));
-			console.log('Firebase token:', token);
 
 			// Save additional user details in backend
 			const response = await api.post('/api/auth/register', {
@@ -98,15 +103,16 @@
 			</p>
 		</div>
 
-		<form class="mt-8 space-y-6" on:submit={handleRegister}>
+		<form class="mt-8 space-y-6" onsubmit={handleRegister}>
 			<div class="space-y-4">
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="reg-name" class="block text-sm font-medium text-gray-700 mb-1">
 						Full Name
 					</label>
 
 					<input
+						id="reg-name"
 						type="text"
 						bind:value={name}
 						required
@@ -116,11 +122,27 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="reg-email" class="block text-sm font-medium text-gray-700 mb-1">
+						Email Address
+					</label>
+
+					<input
+						id="reg-email"
+						type="email"
+						bind:value={email}
+						required
+						placeholder="name@domain.com"
+						class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple"
+					/>
+				</div>
+
+				<div>
+					<label for="reg-phone" class="block text-sm font-medium text-gray-700 mb-1">
 						Phone Number
 					</label>
 
 					<input
+						id="reg-phone"
 						type="tel"
 						bind:value={phone}
 						required
@@ -130,11 +152,12 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="reg-role" class="block text-sm font-medium text-gray-700 mb-1">
 						I am a
 					</label>
 
 					<select
+						id="reg-role"
 						bind:value={selectedRole}
 						class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple bg-white">
 
@@ -145,30 +168,18 @@
 				</div>
 
 				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
-						Email Address
-					</label>
-
-					<input
-						type="email"
-						bind:value={email}
-						required
-						placeholder="name@domain.com"
-						class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple"
-					/>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-1">
+					<label for="reg-password" class="block text-sm font-medium text-gray-700 mb-1">
 						Password
 					</label>
 
 					<div class="relative">
 
 						<input
+							id="reg-password"
 							type={showPassword ? 'text' : 'password'}
 							bind:value={password}
 							required
+							minlength="6"
 							placeholder="••••••••"
 							class="w-full px-3 py-2 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple"
 						/>
@@ -176,7 +187,7 @@
 						<button
 							type="button"
 							class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-rentora-purple"
-							on:click={() => (showPassword = !showPassword)}
+							onclick={() => (showPassword = !showPassword)}
 						>
 							{#if showPassword}
 								<input type="checkbox" checked class="w-4 h-4 accent-indigo-900 rounded">
@@ -186,6 +197,22 @@
 						</button>
 
 					</div>
+				</div>
+
+				<div>
+					<label for="reg-confirm-password" class="block text-sm font-medium text-gray-700 mb-1">
+						Confirm Password
+					</label>
+
+					<input
+						id="reg-confirm-password"
+						type={showPassword ? 'text' : 'password'}
+						bind:value={confirmPassword}
+						required
+						minlength="6"
+						placeholder="••••••••"
+						class="w-full px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rentora-purple"
+					/>
 				</div>
 
 			</div>
@@ -207,7 +234,7 @@
 				disabled={loading}
 				class="w-full py-3 rounded-xl bg-rentora-purple text-white font-semibold hover:bg-rentora-purpleLight transition disabled:opacity-50">
 
-				{loading ? 'Creating Account...' : 'Sign Up'}
+				{loading ? 'Creating Account...' : 'Register'}
 
 			</button>
 

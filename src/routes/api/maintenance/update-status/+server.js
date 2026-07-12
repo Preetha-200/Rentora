@@ -14,29 +14,8 @@ export async function POST({ request, locals }) {
 
 		if (!complaintId || !status) {
 			return json(
-				{
-					message: 'Complaint ID and status are required'
-				},
-				{
-					status: 400
-				}
-			);
-		}
-
-		const validStatuses = [
-			'Pending',
-			'In Progress',
-			'Completed'
-		];
-
-		if (!validStatuses.includes(status)) {
-			return json(
-				{
-					message: 'Invalid status'
-				},
-				{
-					status: 400
-				}
+				{ message: 'Complaint ID and status are required.' },
+				{ status: 400 }
 			);
 		}
 
@@ -45,46 +24,105 @@ export async function POST({ request, locals }) {
 
 		if (!snapshot.exists) {
 			return json(
-				{
-					message: 'Complaint not found'
-				},
-				{
-					status: 404
-				}
+				{ message: 'Complaint not found.' },
+				{ status: 404 }
 			);
 		}
 
 		const complaint = snapshot.data();
 
-		// Only owner can update
-		if (complaint.ownerId !== locals.user.id) {
+		const now = new Date().toISOString();
+		const batch = db.batch();
+
+		// ==========================
+		// OWNER -> CHECKING
+		// ==========================
+		if (status === 'Checking') {
+			if (complaint.ownerId !== locals.user.id) {
+				return json(
+					{ message: 'Not authorized.' },
+					{ status: 403 }
+				);
+			}
+
+			if (complaint.status !== 'Pending') {
+				return json(
+					{
+						message:
+							'Only pending complaints can be marked as Checking.'
+					},
+					{ status: 400 }
+				);
+			}
+
+			batch.update(complaintRef, {
+				status: 'Checking',
+				updatedAt: now
+			});
+
+			batch.set(db.collection('notifications').doc(), {
+				userId: complaint.tenantId,
+				title: 'Maintenance Update',
+				message: `Your maintenance request for "${complaint.propertyTitle}" is now being checked by the owner.`,
+				type: 'MAINTENANCE',
+				read: false,
+				createdAt: now
+			});
+		}
+
+		// ==========================
+		// TENANT -> RESOLVED
+		// ==========================
+		else if (status === 'Resolved') {
+			if (complaint.tenantId !== locals.user.id) {
+				return json(
+					{ message: 'Not authorized.' },
+					{ status: 403 }
+				);
+			}
+
+			if (complaint.status !== 'Checking') {
+				return json(
+					{
+						message:
+							'Complaint must be in Checking state before resolving.'
+					},
+					{ status: 400 }
+				);
+			}
+
+			batch.update(complaintRef, {
+				status: 'Resolved',
+				resolvedAt: now,
+				updatedAt: now
+			});
+
+			batch.set(db.collection('notifications').doc(), {
+				userId: complaint.ownerId,
+				title: 'Maintenance Completed',
+				message: `The tenant confirmed that "${complaint.propertyTitle}" has been resolved.`,
+				type: 'MAINTENANCE',
+				read: false,
+				createdAt: now
+			});
+		}
+
+		else {
 			return json(
 				{
-					message: 'Not authorized'
+					message:
+						'Status must be either "Checking" or "Resolved".'
 				},
 				{
-					status: 403
+					status: 400
 				}
 			);
 		}
 
-		await complaintRef.update({
-			status,
-			updatedAt: new Date().toISOString()
-		});
-
-		// Notify Tenant
-		await db.collection('notifications').add({
-			userId: complaint.tenantId,
-			title: 'Maintenance Status Updated',
-			message: `Your complaint for "${complaint.propertyTitle}" is now "${status}".`,
-			type: 'COMPLAINT_UPDATED',
-			isRead: false,
-			createdAt: new Date().toISOString()
-		});
+		await batch.commit();
 
 		return json({
-			message: 'Complaint status updated successfully'
+			message: 'Maintenance status updated successfully.'
 		});
 	} catch (error) {
 		console.error(error);
