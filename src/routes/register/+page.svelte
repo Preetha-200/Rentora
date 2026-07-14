@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 	import { auth } from '$lib/firebase';
+	import { syncSession } from '$lib/stores/auth.js';
 
 	let name = $state('');
 	let email = $state('');
@@ -54,21 +55,15 @@
 			const regData = await regRes.json();
 			if (!regRes.ok) throw new Error(regData.message || 'Registration failed.');
 
-			// 4. Set server-side session cookie
-			await fetch('/api/auth/session', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ token })
-			});
-
-			// 5. Keep localStorage in sync
-			const user = { id: credential.user.uid, ...regData.user };
-			localStorage.setItem('rentora_user', JSON.stringify(user));
-			window.dispatchEvent(new StorageEvent('storage'));
+			// 4. Sync session + auth store using the same shared logic the rest
+			// of the app relies on, so the dashboard layout guard sees the
+			// correct user immediately instead of racing a second, separate sync.
+			const user = await syncSession(credential.user);
+			if (!user) throw new Error('Could not load user profile after registration.');
 
 			success = 'Account created successfully! Redirecting...';
 
-			setTimeout(() => goto(routeForRole(regData.user.role)), 800);
+			setTimeout(() => goto(routeForRole(user.role)), 800);
 		} catch (err) {
 			error = err.message?.replace('Firebase: ', '') || 'Registration failed. Please try again.';
 		} finally {

@@ -3,7 +3,6 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import dotenv from 'dotenv';
 dotenv.config();
-console.log(process.env.FIREBASE_STORAGE_BUCKET);
 
 let credential;
 
@@ -42,7 +41,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const auth = admin.auth();
-console.log('Bucket =', process.env.FIREBASE_STORAGE_BUCKET);
 const bucket = admin.storage().bucket(
     process.env.FIREBASE_STORAGE_BUCKET
 );

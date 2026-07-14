@@ -3,6 +3,7 @@
 	import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 	import { auth } from '$lib/firebase';
 	import { api } from '$lib/api';
+	import { syncSession } from '$lib/stores/auth.js';
 
 	let email = $state('');
 	let password = $state('');
@@ -16,23 +17,16 @@
 		return routes[role] || '/';
 	}
 
+	// This now reuses the exact same sync logic that the global auth store
+	// (src/lib/stores/auth.js) uses, instead of duplicating it. Previously
+	// this page ran its own separate session/profile fetch AND the store's
+	// onAuthStateChanged listener ran its own — the two raced each other,
+	// and the dashboard layouts (which gate on the store's $authUser) would
+	// sometimes see a stale/null user and bounce straight back to /login,
+	// which looked like "sign-in doesn't redirect."
 	async function syncAndRedirect(firebaseUser) {
-		const token = await firebaseUser.getIdToken();
-		// Set server-side session cookie
-		await fetch('/api/auth/session', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ token })
-		});
-		// Get user profile with role
-		const profileRes = await fetch('/api/auth/profile', {
-			headers: { Authorization: `Bearer ${token}` }
-		});
-		if (!profileRes.ok) throw new Error('Could not load user profile.');
-		const { user } = await profileRes.json();
-		// Keep localStorage in sync for legacy sidebar
-		localStorage.setItem('rentora_user', JSON.stringify({ id: firebaseUser.uid, ...user }));
-		window.dispatchEvent(new StorageEvent('storage'));
+		const user = await syncSession(firebaseUser);
+		if (!user) throw new Error('Could not load user profile.');
 		goto(routeForRole(user.role));
 	}
 

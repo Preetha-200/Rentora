@@ -6,22 +6,27 @@ import { goto } from '$app/navigation';
 export const authUser = writable(null);
 export const authLoading = writable(true);
 
-async function syncSession(firebaseUser) {
+// Exported so pages (e.g. login) can reuse this exact logic instead of
+// duplicating it — avoids two competing syncs racing against each other.
+export async function syncSession(firebaseUser) {
 	if (!firebaseUser) {
 		authUser.set(null);
 		authLoading.set(false);
 		try { await fetch('/api/auth/session', { method: 'DELETE' }); } catch {}
 		if (typeof window !== 'undefined') localStorage.removeItem('rentora_user');
-		return;
+		return null;
 	}
 	try {
 		const token = await firebaseUser.getIdToken();
 		// Set server-side session cookie
-		await fetch('/api/auth/session', {
+		const sessionRes = await fetch('/api/auth/session', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ token })
 		});
+		if (!sessionRes.ok) {
+			throw new Error('Could not establish server session.');
+		}
 		// Fetch user profile
 		const res = await fetch('/api/auth/profile', {
 			headers: { Authorization: `Bearer ${token}` }
@@ -33,13 +38,16 @@ async function syncSession(firebaseUser) {
 			if (typeof window !== 'undefined') {
 				localStorage.setItem('rentora_user', JSON.stringify(user));
 			}
+			return user;
 		} else {
 			authUser.set(null);
 			if (typeof window !== 'undefined') localStorage.removeItem('rentora_user');
+			return null;
 		}
 	} catch (err) {
 		console.error('Session sync error:', err);
 		authUser.set(null);
+		return null;
 	} finally {
 		authLoading.set(false);
 	}
