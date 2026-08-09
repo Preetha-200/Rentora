@@ -22,7 +22,10 @@
 		try {
 			const data = await api.get('/api/properties?status=Approved');
 			properties = Array.isArray(data) ? data : [];
-			propertyTypes = ['All', ...new Set(properties.map((p) => p.type).filter(Boolean))];
+			const existingTypes = new Set(properties.map((p) => p.type).filter(Boolean));
+			const baseTypes = ['Apartment', 'Villa', 'House', 'Studio', 'Commercial'];
+			baseTypes.forEach(t => existingTypes.add(t));
+			propertyTypes = ['All', ...Array.from(existingTypes)];
 		} catch (err) {
 			error = err.message;
 			properties = [];

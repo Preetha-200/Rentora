@@ -11,6 +11,7 @@
 		rent: property?.rent || '',
 		bedrooms: property?.bedrooms || '',
 		bathrooms: property?.bathrooms || '',
+		type: property?.type || 'Apartment',
 		furnishing: property?.furnishing || 'unfurnished',
 		amenities: property?.amenities ? property.amenities.join(', ') : '',
 		status: property?.status || 'Available'
@@ -105,6 +106,17 @@
 			<label class="block text-sm font-medium">Bathrooms</label>
 			<input type="number" bind:value={formData.bathrooms} required class="w-full border rounded px-3 py-2" />
 		</div>
+	</div>
+
+	<div>
+		<label class="block text-sm font-medium">Type</label>
+		<select bind:value={formData.type} class="w-full border rounded px-3 py-2">
+			<option value="Apartment">Apartment</option>
+			<option value="Villa">Villa</option>
+			<option value="House">House</option>
+			<option value="Studio">Studio</option>
+			<option value="Commercial">Commercial</option>
+		</select>
 	</div>
 
 	<div>

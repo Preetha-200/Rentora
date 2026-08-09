@@ -329,6 +329,16 @@
 							<input id="edit-bathrooms" type="number" bind:value={editingProperty.bathrooms} min="1" class="input-field" />
 						</div>
 						<div>
+							<label for="edit-type" class="block text-sm font-semibold text-gray-700 mb-2">Type</label>
+							<select id="edit-type" bind:value={editingProperty.type} class="input-field">
+								<option value="Apartment">Apartment</option>
+								<option value="Villa">Villa</option>
+								<option value="House">House</option>
+								<option value="Studio">Studio</option>
+								<option value="Commercial">Commercial</option>
+							</select>
+						</div>
+						<div>
 							<label for="edit-furnishing" class="block text-sm font-semibold text-gray-700 mb-2">Furnishing</label>
 							<select id="edit-furnishing" bind:value={editingProperty.furnishing} class="input-field">
 								{#each ['Unfurnished', 'Semi-Furnished', 'Fully Furnished'] as f}

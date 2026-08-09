@@ -79,7 +79,8 @@
 			}
 		} catch (err) {
 			if (err.code !== 'auth/popup-closed-by-user') {
-				error = err.message?.replace('Firebase: ', '') || 'Google sign-in failed.';
+				console.error('Google Sign-In Error:', err);
+				error = err.message || 'Google sign-in failed.';
 			}
 		} finally {
 			googleLoading = false;

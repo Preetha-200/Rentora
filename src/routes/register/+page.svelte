@@ -14,6 +14,7 @@
 	let error = $state('');
 	let success = $state('');
 	let showPassword = $state(false);
+	let showConfirmPassword = $state(false);
 
 	function routeForRole(role) {
 		const routes = { admin: '/admin', owner: '/owner', tenant: '/tenant' };
@@ -55,15 +56,12 @@
 			const regData = await regRes.json();
 			if (!regRes.ok) throw new Error(regData.message || 'Registration failed.');
 
-			// 4. Sync session + auth store using the same shared logic the rest
-			// of the app relies on, so the dashboard layout guard sees the
-			// correct user immediately instead of racing a second, separate sync.
-			const user = await syncSession(credential.user);
-			if (!user) throw new Error('Could not load user profile after registration.');
+			// 4. Sync the global auth store and set session cookie
+			await syncSession(credential.user);
 
 			success = 'Account created successfully! Redirecting...';
 
-			setTimeout(() => goto(routeForRole(user.role)), 800);
+			setTimeout(() => goto(routeForRole(regData.user.role)), 800);
 		} catch (err) {
 			error = err.message?.replace('Firebase: ', '') || 'Registration failed. Please try again.';
 		} finally {
@@ -240,12 +238,21 @@
 						<span class="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-xl text-gray-400">lock_reset</span>
 						<input
 							id="reg-confirm"
-							type={showPassword ? 'text' : 'password'}
+							type={showConfirmPassword ? 'text' : 'password'}
 							bind:value={confirmPassword}
 							required
 							minlength="6"
 							placeholder="Repeat your password"
-							class="input-field pl-11" />
+							class="input-field pl-11 pr-12" />
+						<button
+							type="button"
+							onclick={() => (showConfirmPassword = !showConfirmPassword)}
+							class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-rentora-purple transition-colors"
+							aria-label="Toggle password visibility">
+							<span class="material-symbols-outlined text-xl">
+								{showConfirmPassword ? 'visibility_off' : 'visibility'}
+							</span>
+						</button>
 					</div>
 				</div>
 
